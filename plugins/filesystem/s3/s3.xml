@@ -29,7 +29,9 @@
 
     <config>
         <fields name="params">
-            <fieldset name="basic">
+            <fieldset name="basic"
+                      addruleprefix="Joomla\Plugin\Filesystem\S3\Rule"
+            >
                 <field name="connections"
                        type="subform"
                        multiple="true"
@@ -71,7 +73,7 @@
                                default=""
                                required="true"
                                length="50"
-                               filter="Joomla\Plugin\Filesystem\S3\Filter::filterAccessKey"
+                               validate="AccessKey"
                         />
 
                         <field name="secretkey"
@@ -80,6 +82,7 @@
                                default=""
                                required="true"
                                length="128"
+                               validate="SecretKey"
                         />
 
                         <field name="cdn_url"
@@ -110,7 +113,7 @@
                                label="PLG_FILESYSTEM_S3_CONFIG_BUCKET_LABEL"
                                default=""
                                required="true"
-                               filter="Joomla\Plugin\Filesystem\S3\Filter::filterBucket"
+                               validate="Bucket"
                         />
 
                         <field name="signature"
@@ -176,7 +179,6 @@
                                type="text"
                                label="PLG_FILESYSTEM_S3_CONFIG_DIRECTORY_LABEL"
                                addonBefore="/"
-                               addonAfter="/"
                                default=""
                                filter="Joomla\Plugin\Filesystem\S3\Filter::filterDirectory"
                         />
@@ -188,10 +190,14 @@
                                default="STANDARD"
                         >
                             <option value="STANDARD">PLG_FILESYSTEM_S3_CONFIG_STORAGE_CLASS_STANDARD</option>
-                            <option value="REDUCED_REDUNDANCY">PLG_FILESYSTEM_S3_CONFIG_STORAGE_CLASS_REDUCED_REDUNDANCY</option>
+                            <option value="REDUCED_REDUNDANCY">
+                                PLG_FILESYSTEM_S3_CONFIG_STORAGE_CLASS_REDUCED_REDUNDANCY
+                            </option>
                             <option value="STANDARD_IA">PLG_FILESYSTEM_S3_CONFIG_STORAGE_CLASS_STANDARD_IA</option>
                             <option value="ONEZONE_IA">PLG_FILESYSTEM_S3_CONFIG_STORAGE_CLASS_ONEZONE_IA</option>
-                            <option value="INTELLIGENT_TIERING">PLG_FILESYSTEM_S3_CONFIG_STORAGE_CLASS_INTELLIGENT_TIERING</option>
+                            <option value="INTELLIGENT_TIERING">
+                                PLG_FILESYSTEM_S3_CONFIG_STORAGE_CLASS_INTELLIGENT_TIERING
+                            </option>
                             <option value="GLACIER">PLG_FILESYSTEM_S3_CONFIG_STORAGE_CLASS_GLACIER</option>
                             <option value="DEEP_ARCHIVE">PLG_FILESYSTEM_S3_CONFIG_STORAGE_CLASS_DEEP_ARCHIVE</option>
                         </field>
