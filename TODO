@@ -1,0 +1,45 @@
+Document caveats
+================================================================================
+
+Access and Secret Key formats are validated using Amazon S3 provided RegEx
+
+Bucket names are validated using Amazon S3 specs. Can't use uppercase letters.
+
+When using the v4 signature you MUST choose the correct region the bucket is in (Amazon S3 requirement).
+
+May S3 regions REQUIRE the use of the v4 signature. Using the v2 signature will fail to work.
+
+Beware of the storage class! Infrequent Access and Intelligent Tiering may incur higher expenses retrieving files. Glacier and Glacier Deep Archive are essentially incompatible with Media Manager since they take several seconds to several hours before retrieving a file. When listing a folder the Media Manager will try to access ALL files in it.
+
+Beware of lifecycle policies! You can set up lifecycle policies on Amazon S3 which change the storage class or delete files after a period of time. This may break your Media Manager experience.
+
+Beware of bucket configuration! You can set up a bucket which makes all objects inaccessible to the world. If you use that with a CloudFront distribution it won't work and you'll be getting errors. It's not our fault...
+
+File names cannot end in dot (it will be removed), cannot contain forward slash (converted to _)
+
+There is no created date, only modified date. Same thing used for both.
+
+Joomla passes file contents as string. Max size of uploads is constrained by PHP memory.
+
+Very large uploads will fail with a timeout because of the PHP and web server timeouts, max CPU time etc.
+    Upload these files externally.
+
+We do not report the MIME type of each object in file listings; this would require downloading each file listed as it's not reported by S3. Likewise for image size (width and height).
+
+All uploads use public read, owner write ACL permissions.
+
+If not using CloudFront we returned an authenticated URL with an expiration of 10 years (315360000 seconds) regardless of the file's ACLs for performance reasons.
+
+If using CloudFront there's an implicit assumption that ALL files are publicly readable without checking. The URL returned is the CDN URL plus the relative path to the file.
+
+Listing folders over 1000 items requires N requests, may time out
+
+Move / Rename = Copy and Delete
+
+You cannot delete a folder because S3 does not have the concept of folders. You need to delete all files in the “folder” (files with the same path prefix, really), then delete the empty “folder” (which is an empty file).
+
+If using CloudFront with a base directory that's not empty in the connection you MUST include that directory in your CloudFront CDN URL. Otherwise the URLs will be broken.
+
+Getting a resource for a file requires downloading it in its entirety to the server's temporary directory. Make sure PHP is configured correctly with a writeable temporary directory which is DIFFERENT than Joomla's temporary directory!
+
+Recursive searches will most definitely time out or run out of memory. We need to list the contents of the ENTIRE bucket.
