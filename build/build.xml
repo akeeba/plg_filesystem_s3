@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<!--
+  ~ @package   PlgFilesystemS3
+  ~ @copyright Copyright © 2022 Akeeba Ltd / Nicholas K. Dionysopoulos
+  ~ @license   GPLv3 or later
+  -->
+
+<project name="PlgFilesystemS3" description="Amazon S3 Filesystem for Joomla" default="git" >
+	<import file="${phing.dir}/../../buildfiles/phing/common.xml" />
+
+	<!--
+	====================================================================================================
+	Build customization
+	====================================================================================================
+	-->
+	<target name="package-pkg" description="Installation package" depends="new-release, setup-properties, package-plugins">
+		<!-- Dependencies are enough -->
+	</target>
+
+	<target name="package-plugin-item" description="Package a single plugin">
+		<echo message="Packaging plugin ${plugin_area}/${plugin_name}" />
+
+		<property name="plugin_package" value="${dirs.release}/plg_${plugin_area}_${plugin_name}-${version}.zip" />
+
+		<zipme basedir="${plugin_dir}" destfile="${plugin_package}" includeemptydirs="true">
+			<fileset dir="${plugin_dir}">
+				<include name="**" />
+			</fileset>
+		</zipme>
+	</target>
+
+	<!--
+	====================================================================================================
+	Tasks - Documentation
+	====================================================================================================
+	-->
+
+	<target name="documentation" description="The documentation">
+		<echo message="No documentation in DocBook format." />
+	</target>
+
+	<target name="docsdeploy">
+		<echo message="No documentation in DocBook format." />
+	</target>
+
+	<!--
+	====================================================================================================
+	Tasks - Project management
+	====================================================================================================
+	-->
+
+	<target name="release" depends="github-release">
+		<!-- Dependencies are enough -->
+	</target>
+</project>

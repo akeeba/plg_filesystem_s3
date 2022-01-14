@@ -1,0 +1,213 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~ @package   PlgFilesystemS3
+  ~ @copyright Copyright © 2022 Akeeba Ltd / Nicholas K. Dionysopoulos
+  ~ @license   GPLv3 or later
+  -->
+
+<extension version="4.0.0" type="plugin" group="filesystem" method="upgrade">
+    <name>PLG_FILESYSTEM_S3</name>
+    <author>Akeeba Ltd</author>
+    <authorEmail>no-reply@akeeba.com</authorEmail>
+    <authorUrl>https://www.akeeba.com</authorUrl>
+    <copyright>Copyright (c)2022 Akeeba Ltd / Nicholas K. Dionysopoulos</copyright>
+    <license>GNU GPL v3 or later</license>
+    <creationDate>2022-01-13</creationDate>
+    <version>1.0.0</version>
+    <description>PLG_FILESYSTEM_S3_XML_DESCRIPTION</description>
+    <namespace path="src">Joomla\Plugin\Filesystem\S3</namespace>
+
+    <files>
+        <folder>services</folder>
+        <folder plugin="s3">src</folder>
+    </files>
+
+    <languages folder="language">
+        <language tag="en-GB">en-GB/plg_filesystem_s3.ini</language>
+        <language tag="en-GB">en-GB/plg_filesystem_s3.sys.ini</language>
+    </languages>
+
+    <config>
+        <fields name="params">
+            <fieldset name="basic">
+                <field name="connections"
+                       type="subform"
+                       multiple="true"
+                       label="PLG_FILESYSTEM_S3_CONFIG_CONNECTIONS_LABEL"
+                       min="0">
+                    <form>
+                        <field name="label"
+                               type="text"
+                               label="PLG_FILESYSTEM_S3_CONFIG_LABEL_LABEL"
+                               description="PLG_FILESYSTEM_S3_CONFIG_LABEL_DESC"
+                               required="true"
+                        />
+
+                        <field name="type"
+                               type="list"
+                               label="PLG_FILESYSTEM_S3_CONFIG_TYPE_LABEL"
+                               default="cloudfront"
+                               validate="options"
+                               required="true"
+                        >
+                            <option value="s3">PLG_FILESYSTEM_S3_CONFIG_TYPE_S3</option>
+                            <option value="cloudfront">PLG_FILESYSTEM_S3_CONFIG_TYPE_CLOUDFRONT</option>
+                            <option value="custom">PLG_FILESYSTEM_S3_CONFIG_TYPE_CUSTOM</option>
+                        </field>
+
+                        <field name="customendpoint"
+                               type="url"
+                               label="PLG_FILESYSTEM_S3_CONFIG_CUSTOMENDPOINT_LABEL"
+                               default=""
+                               required="true"
+                               showon="type:custom"
+                               filter="url"
+                               validate="url"
+                        />
+
+                        <field name="accesskey"
+                               type="text"
+                               label="PLG_FILESYSTEM_S3_CONFIG_ACCESSKEY_LABEL"
+                               default=""
+                               required="true"
+                               length="50"
+                               filter="Joomla\Plugin\Filesystem\S3\Filter::filterAccessKey"
+                        />
+
+                        <field name="secretkey"
+                               type="password"
+                               label="PLG_FILESYSTEM_S3_CONFIG_SECRETKEY_LABEL"
+                               default=""
+                               required="true"
+                               length="128"
+                        />
+
+                        <field name="cdn_url"
+                               type="url"
+                               label="PLG_FILESYSTEM_S3_CONFIG_CDN_URL_LABEL"
+                               description="PLG_FILESYSTEM_S3_CONFIG_CDN_URL_DESC"
+                               default=""
+                               required="true"
+                               showon="type:cloudfront"
+                               filter="url"
+                               validate="url"
+                        />
+
+                        <field name="dualstack"
+                               type="radio"
+                               layout="joomla.form.field.radio.switcher"
+                               label="PLG_FILESYSTEM_S3_CONFIG_DUALSTACK_LABEL"
+                               description="PLG_FILESYSTEM_S3_CONFIG_DUALSTACK_DESC"
+                               default="1"
+                               showon="type!:custom"
+                        >
+                            <option value="0">JNO</option>
+                            <option value="1">JYES</option>
+                        </field>
+
+                        <field name="bucket"
+                               type="text"
+                               label="PLG_FILESYSTEM_S3_CONFIG_BUCKET_LABEL"
+                               default=""
+                               required="true"
+                               filter="Joomla\Plugin\Filesystem\S3\Filter::filterBucket"
+                        />
+
+                        <field name="signature"
+                               type="list"
+                               label="PLG_FILESYSTEM_S3_CONFIG_BUCKET_LABEL"
+                               default="v4"
+                               validate="options"
+                        >
+                            <option value="v2">PLG_FILESYSTEM_S3_CONFIG_SIGNATURE_V2</option>
+                            <option value="v4">PLG_FILESYSTEM_S3_CONFIG_SIGNATURE_V4</option>
+                        </field>
+
+                        <field name="region"
+                               type="list"
+                               label="PLG_FILESYSTEM_S3_CONFIG_REGION_LABEL"
+                               default="us-east-1"
+                               showon="signature:v4"
+                        >
+                            <option value="us-east-1">PLG_FILESYSTEM_S3_CONFIG_REGION_US_EAST_1</option>
+                            <option value="us-east-2">PLG_FILESYSTEM_S3_CONFIG_REGION_US_EAST_2</option>
+                            <option value="us-west-1">PLG_FILESYSTEM_S3_CONFIG_REGION_US_WEST_1</option>
+                            <option value="us-west-2">PLG_FILESYSTEM_S3_CONFIG_REGION_US_WEST_2</option>
+                            <option value="af-south-1">PLG_FILESYSTEM_S3_CONFIG_REGION_AF_SOUTH_1</option>
+                            <option value="ap-east-1">PLG_FILESYSTEM_S3_CONFIG_REGION_AP_EAST_1</option>
+                            <option value="ap-south-1">PLG_FILESYSTEM_S3_CONFIG_REGION_AP_SOUTH_1</option>
+                            <option value="ap-northeast-1">PLG_FILESYSTEM_S3_CONFIG_REGION_AP_NORTHEAST_1</option>
+                            <option value="ap-northeast-2">PLG_FILESYSTEM_S3_CONFIG_REGION_AP_NORTHEAST_2</option>
+                            <option value="ap-northeast-3">PLG_FILESYSTEM_S3_CONFIG_REGION_AP_NORTHEAST_3</option>
+                            <option value="ap-southeast-1">PLG_FILESYSTEM_S3_CONFIG_REGION_AP_SOUTHEAST_1</option>
+                            <option value="ap-southeast-2">PLG_FILESYSTEM_S3_CONFIG_REGION_AP_SOUTHEAST_2</option>
+                            <option value="ca-central-1">PLG_FILESYSTEM_S3_CONFIG_REGION_CA_CENTRAL_1</option>
+                            <option value="cn-north-1">PLG_FILESYSTEM_S3_CONFIG_REGION_CN_NORTH_1</option>
+                            <option value="cn-northwest-1">PLG_FILESYSTEM_S3_CONFIG_REGION_CN_NORTHWEST_1</option>
+                            <option value="eu-central-1">PLG_FILESYSTEM_S3_CONFIG_REGION_EU_CENTRAL_1</option>
+                            <option value="eu-west-1">PLG_FILESYSTEM_S3_CONFIG_REGION_EU_WEST_1</option>
+                            <option value="eu-west-2">PLG_FILESYSTEM_S3_CONFIG_REGION_EU_WEST_2</option>
+                            <option value="eu-west-3">PLG_FILESYSTEM_S3_CONFIG_REGION_EU_WEST_3</option>
+                            <option value="eu-south-1">PLG_FILESYSTEM_S3_CONFIG_REGION_EU_SOUTH_1</option>
+                            <option value="eu-north-1">PLG_FILESYSTEM_S3_CONFIG_REGION_EU_NORTH_1</option>
+                            <option value="sa-east-1">PLG_FILESYSTEM_S3_CONFIG_REGION_SA_EAST_1</option>
+                            <option value="me-south-1">PLG_FILESYSTEM_S3_CONFIG_REGION_ME_SOUTH_1</option>
+                            <option value="custom">PLG_FILESYSTEM_S3_CONFIG_REGION_CUSTOM</option>
+                        </field>
+
+                        <field name="custom_region"
+                               type="text"
+                               label="PLG_FILESYSTEM_S3_CONFIG_CUSTOM_REGION_LABEL"
+                               default=""
+                               required="true"
+                               showon="region:custom"
+                        />
+
+                        <field name="pathaccess"
+                               type="list"
+                               label="PLG_FILESYSTEM_S3_CONFIG_PATHACCESS_LABEL"
+                               validate="options"
+                        >
+                            <option value="path">PLG_FILESYSTEM_S3_CONFIG_PATHACCESS_PATH</option>
+                            <option value="virtualhost">PLG_FILESYSTEM_S3_CONFIG_PATHACCESS_VIRTUALHOST</option>
+                        </field>
+
+                        <field name="directory"
+                               type="text"
+                               label="PLG_FILESYSTEM_S3_CONFIG_DIRECTORY_LABEL"
+                               addonBefore="/"
+                               addonAfter="/"
+                               default=""
+                               filter="Joomla\Plugin\Filesystem\S3\Filter::filterDirectory"
+                        />
+
+                        <field name="storage_class"
+                               type="list"
+                               label="PLG_FILESYSTEM_S3_CONFIG_STORAGE_CLASS_LABEL"
+                               description="PLG_FILESYSTEM_S3_CONFIG_STORAGE_CLASS_DESC"
+                               default="STANDARD"
+                        >
+                            <option value="STANDARD">PLG_FILESYSTEM_S3_CONFIG_STORAGE_CLASS_STANDARD</option>
+                            <option value="REDUCED_REDUNDANCY">PLG_FILESYSTEM_S3_CONFIG_STORAGE_CLASS_REDUCED_REDUNDANCY</option>
+                            <option value="STANDARD_IA">PLG_FILESYSTEM_S3_CONFIG_STORAGE_CLASS_STANDARD_IA</option>
+                            <option value="ONEZONE_IA">PLG_FILESYSTEM_S3_CONFIG_STORAGE_CLASS_ONEZONE_IA</option>
+                            <option value="INTELLIGENT_TIERING">PLG_FILESYSTEM_S3_CONFIG_STORAGE_CLASS_INTELLIGENT_TIERING</option>
+                            <option value="GLACIER">PLG_FILESYSTEM_S3_CONFIG_STORAGE_CLASS_GLACIER</option>
+                            <option value="DEEP_ARCHIVE">PLG_FILESYSTEM_S3_CONFIG_STORAGE_CLASS_DEEP_ARCHIVE</option>
+                        </field>
+                    </form>
+                    <!--
+                        filter: alphanumeric integer no_html plaintext path
+                     -->
+                </field>
+
+            </fieldset>
+        </fields>
+    </config>
+
+    <updateservers>
+        <server type="extension" priority="1" name="DarkMagic for Joomla 4 Updates">
+            https://raw.githubusercontent.com/akeeba/plg_filesystem_s3/update/plg_filesystem_s3.xml
+        </server>
+    </updateservers>
+</extension>
