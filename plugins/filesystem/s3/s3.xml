@@ -116,7 +116,7 @@
 
                         <field name="signature"
                                type="list"
-                               label="PLG_FILESYSTEM_S3_CONFIG_BUCKET_LABEL"
+                               label="PLG_FILESYSTEM_S3_CONFIG_SIGNATURE_LABEL"
                                default="v4"
                                validate="options"
                         >
