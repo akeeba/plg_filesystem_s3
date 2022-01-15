@@ -12,8 +12,10 @@ defined('_JEXEC') or die;
 use Exception;
 use Joomla\CMS\Date\Date;
 use Joomla\CMS\Filesystem\File;
+use Joomla\CMS\Helper\MediaHelper;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Uri\Uri;
 use Joomla\Component\Media\Administrator\Adapter\AdapterInterface;
 use Joomla\Component\Media\Administrator\Exception\FileNotFoundException;
 use Joomla\Plugin\Filesystem\S3\Library\Acl;
@@ -29,6 +31,91 @@ use stdClass;
 
 class S3Filesystem implements AdapterInterface
 {
+	/**
+	 * Common MIME types based on file extension
+	 *
+	 * @since 1.0.0
+	 * @see   https://developer.mozilla.org/en-US/docs/Web/HTTP/Basics_of_HTTP/MIME_types/Common_types
+	 */
+	private const MIME_TYPES = [
+		'aac'    => 'audio/aac',
+		'abw'    => 'application/x-abiword',
+		'arc'    => 'application/x-freearc',
+		'avi'    => 'video/x-msvideo',
+		'azw'    => 'application/vnd.amazon.ebook',
+		'bin'    => 'application/octet-stream',
+		'bmp'    => 'image/bmp',
+		'bz'     => 'application/x-bzip',
+		'bz2'    => 'application/x-bzip2',
+		'cda'    => 'application/x-cdf',
+		'csh'    => 'application/x-csh',
+		'css'    => 'text/css',
+		'csv'    => 'text/csv',
+		'doc'    => 'application/msword',
+		'docx'   => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+		'eot'    => 'application/vnd.ms-fontobject',
+		'epub'   => 'application/epub+zip',
+		'gz'     => 'application/gzip',
+		'gif'    => 'image/gif',
+		'htm'    => 'text/html',
+		'html'   => 'text/html',
+		'ico'    => 'image/vnd.microsoft.icon',
+		'ics'    => 'text/calendar',
+		'jar'    => 'application/java-archive',
+		'jpeg'   => 'image/jpeg',
+		'jpg'    => 'image/jpeg',
+		'js'     => 'text/javascript',
+		'json'   => 'application/json',
+		'jsonld' => 'application/ld+json',
+		'mid'    => 'audio/midi',
+		'midi'   => 'audio/midi',
+		'mjs'    => 'text/javascript',
+		'mp3'    => 'audio/mpeg',
+		'mp4'    => 'video/mp4',
+		'mpeg'   => 'video/mpeg',
+		'mpkg'   => 'application/vnd.apple.installer+xml',
+		'odp'    => 'application/vnd.oasis.opendocument.presentation',
+		'ods'    => 'application/vnd.oasis.opendocument.spreadsheet',
+		'odt'    => 'application/vnd.oasis.opendocument.text',
+		'oga'    => 'audio/ogg',
+		'ogv'    => 'video/ogg',
+		'ogx'    => 'application/ogg',
+		'opus'   => 'audio/opus',
+		'otf'    => 'font/otf',
+		'png'    => 'image/png',
+		'pdf'    => 'application/pdf',
+		'php'    => 'application/x-httpd-php',
+		'ppt'    => 'application/vnd.ms-powerpoint',
+		'pptx'   => 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+		'rar'    => 'application/vnd.rar',
+		'rtf'    => 'application/rtf',
+		'sh'     => 'application/x-sh',
+		'svg'    => 'image/svg+xml',
+		'swf'    => 'application/x-shockwave-flash',
+		'tar'    => 'application/x-tar',
+		'tif'    => 'image/tiff',
+		'tiff'   => 'image/tiff',
+		'ts'     => 'video/mp2t',
+		'ttf'    => 'font/ttf',
+		'txt'    => 'text/plain',
+		'vsd'    => 'application/vnd.visio',
+		'wav'    => 'audio/wav',
+		'weba'   => 'audio/webm',
+		'webm'   => 'video/webm',
+		'webp'   => 'image/webp',
+		'woff'   => 'font/woff',
+		'woff2'  => 'font/woff2',
+		'xhtml'  => 'application/xhtml+xml',
+		'xls'    => 'application/vnd.ms-excel',
+		'xlsx'   => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+		'xml'    => 'application/xml',
+		'xul'    => 'application/vnd.mozilla.xul+xml',
+		'zip'    => 'application/zip',
+		'3gp'    => 'video/3gpp',
+		'3g2'    => 'video/3gpp2',
+		'7z'     => 'application/x-7z-compressed',
+	];
+
 	/**
 	 * Access Key
 	 *
@@ -338,9 +425,8 @@ class S3Filesystem implements AdapterInterface
 	public function createFolder(string $name, string $path): string
 	{
 		// Amazon S3 does not have folders. Creating an empty key whose name ends in "/" works as an empty folder.
-		$dummy    = '';
-		$input    = Input::createFromData($dummy);
-		$endpoint = $this->connector->getConfiguration()->getEndpoint();
+		$dummy = '';
+		$input = Input::createFromData($dummy);
 
 		$name      = $this->makeSafeName($name);
 		$path      = trim($path, '/');
@@ -402,35 +488,81 @@ class S3Filesystem implements AdapterInterface
 	 *
 	 * @return  stdClass
 	 *
-	 * @since   1.0.0
 	 * @throws  Exception
+	 * @since   1.0.0
 	 */
 	public function getFile(string $path = '/'): stdClass
 	{
+		/**
+		 * Joomla's Media Manager has the single most inefficient, nonsensical adapter design I have even seen — and I
+		 * have written plugins for f*cking WordPress!
+		 *
+		 * You'd think that the Adapter having two methods getFiles and getFile would really mean that the former is
+		 * used for directory listings and the latter for getting file metadata, right?
+		 *
+		 * Wrong.
+		 *
+		 * Joomla will use getFiles to get the metadata of a single file(!) and will also use getFile to find out if a
+		 * directory(!) exists. This is bonkers.
+		 *
+		 * There are exactly ZERO (0) remote storage provider APIs which will use the same API call to list directory
+		 * contents AND return file information. Zero. None. Zip. Zilch. Nada.
+		 *
+		 * This nonsensical design means that getFiles() needs to do TWO requests, first to make sure that the given
+		 * path is not a file — or if it is a file fall back to getFile() — then another one to actually list the
+		 * directory contents. This means that listing directories is dead slow.
+		 *
+		 * Moreover, getFile() will need to perform one request assuming the path is a file. If it's not found, it will
+		 * have to make YET ANOTHER request assuming the path is a folder.
+		 *
+		 * Whoever designed the Media Manager API and Adapter has clearly never tried to implement a remote storage
+		 * provide integration in any software at all, ever.
+		 */
+
 		$dirPrefix = $this->directory . (empty($this->directory) ? '' : '/');
 		$path      = ltrim($path, '/');
 		$path      = $dirPrefix . $path;
 
 		$isDir = substr($path, -1) === '/';
+		$found = false;
 
 		try
 		{
-			$meta = $this->connector->headObject($this->bucket, $path);
+			$meta  = $this->connector->headObject($this->bucket, $path);
+			$found = true;
 		}
 		catch (CannotGetFile $e)
 		{
-			throw new FileNotFoundException($e->getMessage(), 404, $e);
+
+		}
+
+		// Since Joomla doesn't know folders need a trailing slash we'll fall back to searching for a folder.
+		if (!$found)
+		{
+			try
+			{
+				$meta  = $this->connector->headObject($this->bucket, $path . '/');
+				$isDir = true;
+			}
+			catch (CannotGetFile $e)
+			{
+				throw new FileNotFoundException($e->getMessage(), 404, $e);
+			}
 		}
 
 		$nameKey = $isDir ? 'prefix' : 'name';
 
-		return $this->dirListingToJoomlaObject([
-			$nameKey => basename(rtrim($path, '/')),
-			'time' => $meta['time'] ?? time(),
-			'hash' => $meta['hash'] ?? null,
-			'type' => $meta['type'] ?? 'application/octet-stream',
-			'size' => $meta['size'] ?? 0,
-		]);
+		$x = $this->dirListingToJoomlaObject([
+			$nameKey => rtrim($path, '/'),
+			'time'   => $meta['time'] ?? time(),
+			'hash'   => $meta['hash'] ?? null,
+			'type'   => $meta['type'] ?? 'application/octet-stream',
+			'size'   => $meta['size'] ?? 0,
+		], $dirPrefix);
+
+		//print_r($x);die;
+
+		return $x;
 	}
 
 	/**
@@ -458,9 +590,46 @@ class S3Filesystem implements AdapterInterface
 	 */
 	public function getFiles(string $path = '/'): array
 	{
+		/**
+		 * Joomla's Media Manager has the single most inefficient, nonsensical adapter design I have even seen — and I
+		 * have written plugins for f*cking WordPress!
+		 *
+		 * You'd think that the Adapter having two methods getFiles and getFile would really mean that the former is
+		 * used for directory listings and the latter for getting file metadata, right?
+		 *
+		 * Wrong.
+		 *
+		 * Joomla will use getFiles to get the metadata of a single file(!) and will also use getFile to find out if a
+		 * directory(!) exists. This is bonkers.
+		 *
+		 * There are exactly ZERO (0) remote storage provider APIs which will use the same API call to list directory
+		 * contents AND return file information. Zero. None. Zip. Zilch. Nada.
+		 *
+		 * This nonsensical design means that getFiles() needs to do TWO requests, first to make sure that the given
+		 * path is not a file — or if it is a file fall back to getFile() — then another one to actually list the
+		 * directory contents. This means that listing directories is dead slow.
+		 *
+		 * Moreover, getFile() will need to perform one request assuming the path is a file. If it's not found, it will
+		 * have to make YET ANOTHER request assuming the path is a folder.
+		 *
+		 * Whoever designed the Media Manager API and Adapter has clearly never tried to implement a remote storage
+		 * provide integration in any software at all, ever.
+		 */
+
+		if (!empty(trim($path, '/')))
+		{
+			$joomlaStupid = $this->getFile($path);
+
+			if ($joomlaStupid->type === 'file')
+			{
+				return [$joomlaStupid];
+			}
+		}
+
 		$dirPrefix = $this->directory . (empty($this->directory) ? '' : '/');
 		$path      = trim($path, '/');
 		$path      = $dirPrefix . $path . '/';
+		$path      = substr($path, -2) === '//' ? substr($path, 0, -1) : $path;
 		$path      = ($path === '/') ? null : $path;
 		$marker    = null;
 		$listing   = [];
@@ -487,7 +656,12 @@ class S3Filesystem implements AdapterInterface
 			$marker    = array_pop($filenames);
 		} while (true);
 
-		return $listing;
+		file_put_contents(JPATH_SITE . '/debug.txt', print_r([
+			'path'    => $path,
+			'listing' => array_values($listing),
+		], true));
+
+		return array_values($listing);
 	}
 
 	/**
@@ -531,7 +705,7 @@ class S3Filesystem implements AdapterInterface
 	{
 		if ($this->isCloudFront)
 		{
-			return rtrim($this->cdnUrl, '/') . '/' . $path;
+			return rtrim($this->cdnUrl, '/') . '/' . $this->getEncodedPath(ltrim($path, '/'));
 		}
 
 		$dirPrefix = $this->directory . (empty($this->directory) ? '' : '/');
@@ -583,6 +757,7 @@ class S3Filesystem implements AdapterInterface
 		$dirPrefix = $this->directory . (empty($this->directory) ? '' : '/');
 		$path      = trim($path, '/');
 		$path      = $dirPrefix . $path . '/';
+		$path      = substr($path, -2) === '//' ? substr($path, 0, -1) : $path;
 		$path      = ($path === '/') ? null : $path;
 		$marker    = null;
 		$listing   = [];
@@ -698,36 +873,83 @@ class S3Filesystem implements AdapterInterface
 		$type     = isset($raw['prefix']) ? 'dir' : 'file';
 		$filePath = $raw['prefix'] ?? $raw['name'];
 		$fileName = basename($filePath);
-		$path     = dirname($filePath);
 
-		if (!empty($dirPrefix) && strpos($path, $dirPrefix) === 0)
+		$path = $filePath;
+
+		if (!empty($dirPrefix) && strpos($filePath, $dirPrefix) === 0)
 		{
 			$path = substr($path, strlen($dirPrefix));
-			$path = trim($path, '/');
 		}
+
+		$path = '/' . trim($path, '/');
 
 		if ($type === 'file')
 		{
-			$date = new Date('@' . sprintf('%0.5f', (float) $raw['time']));
+			$date = new Date(sprintf('%0.5f', (float) $raw['time']));
 		}
 
 		$dateIso       = isset($date) ? $date->toISO8601() : '';
 		$dateFormatted = isset($date) ? HTMLHelper::_('date', $date, Text::_('DATE_FORMAT_LC5')) : '';
 
-		return (object) [
+		$extension = $type === 'dir' ? '' : File::getExt($fileName);
+
+		/**
+		 * Get an object with the basic information about the file or folder.
+		 *
+		 * Yup, the *_formatted timestamps are undocumented in Joomla. SURPRISE!
+		 */
+		$obj = (object) [
 			'type'                    => $type,
 			'name'                    => $fileName,
 			'path'                    => $path,
-			'extension'               => $type === 'dir' ? '' : File::getExt($fileName),
+			'extension'               => $extension,
 			'size'                    => $raw['size'] ?? '',
 			'create_date'             => $dateIso,
 			'create_date_formatted'   => $dateFormatted,
 			'modified_date'           => $dateIso,
 			'modified_date_formatted' => $dateFormatted,
-			'mime_type'               => $raw['type'] ?? 'application/octet-stream',
+			'mime_type'               => ($type === 'dir') ? '' : $raw['type'] ?? (self::MIME_TYPES[$extension] ?? 'application/octet-stream'),
 			'width'                   => 0,
 			'height'                  => 0,
 		];
+
+		if (($type === 'file') && MediaHelper::isImage($fileName))
+		{
+			/**
+			 * Yes, this is undocumented in Joomla. The actual thumbnail path needs to be provided in a completely
+			 * undocumented object parameter.
+			 *
+			 * TODO Document using AWS Lambda@Edge
+			 *
+			 * @see https://aws.amazon.com/blogs/networking-and-content-delivery/resizing-images-with-amazon-cloudfront-lambdaedge-aws-cdn-blog/
+			 */
+			$obj->thumb_path = $this->getUrl($obj->path);
+
+			if ($this->isCloudFront)
+			{
+				$uri = new Uri($obj->thumb_path);
+				$uri->setVar('d', '100x100');
+
+				$obj->thumb_path = $uri->toString();
+			}
+		}
+
+		return $obj;
+	}
+
+	/**
+	 * Replace spaces on a path with %20
+	 *
+	 * @param   string  $path  The Path to be encoded
+	 *
+	 * @return  string
+	 *
+	 * @throws  FileNotFoundException
+	 * @since   1.0.0
+	 */
+	private function getEncodedPath(string $path): string
+	{
+		return str_replace(" ", "%20", $path);
 	}
 
 	/**
@@ -780,4 +1002,5 @@ class S3Filesystem implements AdapterInterface
 
 		return $name;
 	}
+
 }
