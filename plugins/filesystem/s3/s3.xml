@@ -61,7 +61,6 @@
                                type="url"
                                label="PLG_FILESYSTEM_S3_CONFIG_CUSTOMENDPOINT_LABEL"
                                default=""
-                               required="true"
                                showon="type:custom"
                                filter="url"
                                validate="url"
@@ -90,7 +89,6 @@
                                label="PLG_FILESYSTEM_S3_CONFIG_CDN_URL_LABEL"
                                description="PLG_FILESYSTEM_S3_CONFIG_CDN_URL_DESC"
                                default=""
-                               required="true"
                                showon="type:cloudfront"
                                filter="url"
                                validate="url"
@@ -162,7 +160,6 @@
                                type="text"
                                label="PLG_FILESYSTEM_S3_CONFIG_CUSTOM_REGION_LABEL"
                                default=""
-                               required="true"
                                showon="region:custom"
                         />
 
@@ -170,6 +167,7 @@
                                type="list"
                                label="PLG_FILESYSTEM_S3_CONFIG_PATHACCESS_LABEL"
                                validate="options"
+                               default="virtualhost"
                         >
                             <option value="path">PLG_FILESYSTEM_S3_CONFIG_PATHACCESS_PATH</option>
                             <option value="virtualhost">PLG_FILESYSTEM_S3_CONFIG_PATHACCESS_VIRTUALHOST</option>
@@ -195,11 +193,13 @@
                             </option>
                             <option value="STANDARD_IA">PLG_FILESYSTEM_S3_CONFIG_STORAGE_CLASS_STANDARD_IA</option>
                             <option value="ONEZONE_IA">PLG_FILESYSTEM_S3_CONFIG_STORAGE_CLASS_ONEZONE_IA</option>
+                            <!--
                             <option value="INTELLIGENT_TIERING">
                                 PLG_FILESYSTEM_S3_CONFIG_STORAGE_CLASS_INTELLIGENT_TIERING
                             </option>
                             <option value="GLACIER">PLG_FILESYSTEM_S3_CONFIG_STORAGE_CLASS_GLACIER</option>
                             <option value="DEEP_ARCHIVE">PLG_FILESYSTEM_S3_CONFIG_STORAGE_CLASS_DEEP_ARCHIVE</option>
+                            -->
                         </field>
                     </form>
                     <!--
