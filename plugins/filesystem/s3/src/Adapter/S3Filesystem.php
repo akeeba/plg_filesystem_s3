@@ -19,6 +19,7 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Component\Media\Administrator\Adapter\AdapterInterface;
 use Joomla\Component\Media\Administrator\Exception\FileNotFoundException;
+use Joomla\Plugin\Filesystem\S3\Helper\Preview;
 use Joomla\Plugin\Filesystem\S3\Library\Acl;
 use Joomla\Plugin\Filesystem\S3\Library\Configuration;
 use Joomla\Plugin\Filesystem\S3\Library\Connector;
@@ -197,6 +198,14 @@ class S3Filesystem implements AdapterInterface
 	 * @since 1.0.0
 	 */
 	private $name = '';
+
+	/**
+	 * The Preview helper
+	 *
+	 * @var   Preview
+	 * @since 1.0.0
+	 */
+	private $preview;
 
 	/**
 	 * Bucket region
@@ -525,7 +534,7 @@ class S3Filesystem implements AdapterInterface
 	{
 		/**
 		 * Joomla's Media Manager has the single most inefficient, nonsensical adapter design I have even seen — and I
-		 * have written plugins for f*cking WordPress!
+		 * have written plugins for WordPress!
 		 *
 		 * You'd think that the Adapter having two methods getFiles and getFile would really mean that the former is
 		 * used for directory listings and the latter for getting file metadata, right?
@@ -622,7 +631,7 @@ class S3Filesystem implements AdapterInterface
 	{
 		/**
 		 * Joomla's Media Manager has the single most inefficient, nonsensical adapter design I have even seen — and I
-		 * have written plugins for f*cking WordPress!
+		 * have written plugins for WordPress!
 		 *
 		 * You'd think that the Adapter having two methods getFiles and getFile would really mean that the former is
 		 * used for directory listings and the latter for getting file metadata, right?
@@ -822,6 +831,11 @@ class S3Filesystem implements AdapterInterface
 		return $listing;
 	}
 
+	public function setPreview(Preview $preview)
+	{
+		$this->preview = $preview;
+	}
+
 	/**
 	 * Updates the file with the given name in the given path with the data.
 	 *
@@ -944,27 +958,15 @@ class S3Filesystem implements AdapterInterface
 			'height'                  => 0,
 		];
 
-		if (($type === 'file') && MediaHelper::isImage($fileName))
+
+		/**
+		 * Yes, this is undocumented in Joomla.
+		 *
+		 * The actual thumbnail path needs to be provided in a completely undocumented object parameter.
+		 */
+		if (($type === 'file') && $this->preview->shouldPreview($obj->path, $this->isCloudFront))
 		{
-			/**
-			 * Yes, this is undocumented in Joomla. The actual thumbnail path needs to be provided in a completely
-			 * undocumented object parameter.
-			 *
-			 * TODO Document using AWS Lambda@Edge
-			 *
-			 * @see https://aws.amazon.com/blogs/networking-and-content-delivery/resizing-images-with-amazon-cloudfront-lambdaedge-aws-cdn-blog/
-			 */
-			$obj->thumb_path = $this->getUrl($obj->path);
-
-			if ($this->isCloudFront)
-			{
-				$ext = File::getExt(basename($obj->path));
-				$uri = new Uri($obj->thumb_path);
-				$uri->setVar('d', '100x100');
-				$uri->setVar('dummy', 'file.' . $ext);
-
-				$obj->thumb_path = $uri->toString();
-			}
+			$obj->thumb_path = $this->preview->getResized($this->getUrl($obj->path));
 		}
 
 		return $obj;
@@ -977,7 +979,6 @@ class S3Filesystem implements AdapterInterface
 	 *
 	 * @return  string
 	 *
-	 * @throws  FileNotFoundException
 	 * @since   1.0.0
 	 */
 	private function getEncodedPath(string $path): string

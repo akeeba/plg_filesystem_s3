@@ -16,6 +16,7 @@ use Joomla\Component\Media\Administrator\Event\MediaProviderEvent;
 use Joomla\Component\Media\Administrator\Provider\ProviderInterface;
 use Joomla\Event\SubscriberInterface;
 use Joomla\Plugin\Filesystem\S3\Adapter\S3Filesystem;
+use Joomla\Plugin\Filesystem\S3\Helper\Preview;
 
 class S3 extends CMSPlugin implements SubscriberInterface, ProviderInterface
 {
@@ -50,6 +51,7 @@ class S3 extends CMSPlugin implements SubscriberInterface, ProviderInterface
 	 */
 	public function getAdapters()
 	{
+		$preview = new Preview($this->params);
 		$adapters = [];
 
 		try
@@ -72,6 +74,7 @@ class S3 extends CMSPlugin implements SubscriberInterface, ProviderInterface
 			try
 			{
 				$adapter = S3Filesystem::getFromConnection((array) $connection);
+				$adapter->setPreview($preview);
 			}
 			catch (\Exception $e)
 			{

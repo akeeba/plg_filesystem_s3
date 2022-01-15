@@ -208,6 +208,53 @@
                 </field>
 
             </fieldset>
+            <fieldset name="advanced"
+                      label="PLG_FILESYSTEM_S3_FIELDSET_ADVANCED_LABEL"
+            >
+
+                <field name="preview"
+                       type="list"
+                       label="PLG_FILESYSTEM_S3_CONFIG_PREVIEW_LABEL"
+                       description="PLG_FILESYSTEM_S3_CONFIG_PREVIEW_DESC"
+                       default="always"
+                >
+                    <option value="never">PLG_FILESYSTEM_S3_CONFIG_PREVIEW_NEVER</option>
+                    <option value="cloudfront">PLG_FILESYSTEM_S3_CONFIG_PREVIEW_CLOUDFRONT</option>
+                    <option value="always">PLG_FILESYSTEM_S3_CONFIG_PREVIEW_ALWAYS</option>
+                </field>
+
+                <field name="previewExtensions"
+                       type="text"
+                       label="PLG_FILESYSTEM_S3_CONFIG_PREVIEWEXTENSIONS_LABEL"
+                       description="PLG_FILESYSTEM_S3_CONFIG_PREVIEWEXTENSIONS_DESC"
+                       default="png,gif,jpg,jpeg,bmp,webp,pdf,svg"
+                       showon="preview!:never"
+                />
+
+                <field name="lambdaResize"
+                       type="radio"
+                       layout="joomla.form.field.radio.switcher"
+                       label="PLG_FILESYSTEM_S3_CONFIG_LAMBDARESIZE_LABEL"
+                       description="PLG_FILESYSTEM_S3_CONFIG_LAMBDARESIZE_DESC"
+                       default="0"
+                       showon="preview!:custom"
+                >
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+
+                <field name="resizedDimension"
+                       type="integer"
+                       first="100"
+                       last="400"
+                       step="100"
+                       label="PLG_FILESYSTEM_S3_CONFIG_RESIZEDIMENSION_LABEL"
+                       description="PLG_FILESYSTEM_S3_CONFIG_RESIZEDIMENSION_DESC"
+                       default="100"
+                       showon="preview!:custom[AND]lambdaResize:1"
+                />
+
+            </fieldset>
         </fields>
     </config>
 
