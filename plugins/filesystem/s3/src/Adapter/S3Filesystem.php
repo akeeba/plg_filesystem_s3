@@ -13,10 +13,8 @@ use Exception;
 use Joomla\CMS\Date\Date;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filesystem\File;
-use Joomla\CMS\Helper\MediaHelper;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
-use Joomla\CMS\Uri\Uri;
 use Joomla\Component\Media\Administrator\Adapter\AdapterInterface;
 use Joomla\Component\Media\Administrator\Exception\FileNotFoundException;
 use Joomla\Plugin\Filesystem\S3\Helper\Preview;
@@ -397,6 +395,7 @@ class S3Filesystem implements AdapterInterface
 	 */
 	public function copy(string $sourcePath, string $destinationPath, bool $force = false): string
 	{
+		$sourceInfo      = $this->getFile($sourcePath);
 		$sourcePath      = trim($sourcePath, '/');
 		$destinationPath = trim($destinationPath, '/');
 
@@ -406,9 +405,15 @@ class S3Filesystem implements AdapterInterface
 		$filename        = $this->makeSafeName($filename);
 		$destinationPath = $directory . (empty($directory) ? '' : '/') . $filename;
 
-		$dirPrefix              = $this->directory . (empty($this->directory) ? '' : '/');
-		$sourcePathAbsolute     = $dirPrefix . $sourcePath;
+		$dirPrefix               = $this->directory . (empty($this->directory) ? '' : '/');
+		$sourcePathAbsolute      = $dirPrefix . $sourcePath;
 		$destinationPathAbsolute = $dirPrefix . $destinationPath;
+
+		if ($sourceInfo->type === 'dir')
+		{
+			$sourcePathAbsolute      .= '/';
+			$destinationPathAbsolute .= '/';
+		}
 
 		$this->copyObject($this->bucket, $sourcePathAbsolute, $destinationPathAbsolute, Acl::ACL_PUBLIC_READ, $this->storageClass);
 
@@ -792,6 +797,45 @@ class S3Filesystem implements AdapterInterface
 	 */
 	public function move(string $sourcePath, string $destinationPath, bool $force = false): string
 	{
+		// Detect directories. Note that the fake `dirname/` zero length file may NOT exist. Hence the exception catch.
+		$skipActualSource = false;
+
+		try
+		{
+			$sourceInfo = $this->getFile($sourcePath);
+			$isDir      = $sourceInfo->type === 'dir';
+		}
+		catch (FileNotFoundException $e)
+		{
+			$isDir            = true;
+			$skipActualSource = true;
+		}
+
+		// Recursively move the files of a folder
+		if ($isDir)
+		{
+			$files = $this->getFiles($sourcePath);
+
+			foreach ($files as $file)
+			{
+				$fileSourcePath = $file->path;
+				$fileDestPath   = rtrim($destinationPath, '/') . '/' . trim(substr($file->path, strlen($sourcePath)), '/');
+				$fileDestPath   = rtrim($fileDestPath, '/');
+
+				if ($fileSourcePath === $sourcePath)
+				{
+					continue;
+				}
+
+				$this->move($fileSourcePath, $fileDestPath, $force);
+			}
+		}
+
+		if ($skipActualSource)
+		{
+			return basename($this->makeSafeName(rtrim($destinationPath, '/')));
+		}
+
 		// Amazon S3 doesn't have an atomic move/rename operation. We copy, then delete the source.
 		$newName = $this->copy($sourcePath, $destinationPath, $force);
 
