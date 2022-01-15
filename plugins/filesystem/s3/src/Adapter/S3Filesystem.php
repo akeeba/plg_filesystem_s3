@@ -11,6 +11,7 @@ defined('_JEXEC') or die;
 
 use Exception;
 use Joomla\CMS\Date\Date;
+use Joomla\CMS\Factory;
 use Joomla\CMS\Filesystem\File;
 use Joomla\CMS\Helper\MediaHelper;
 use Joomla\CMS\HTML\HTMLHelper;
@@ -26,6 +27,7 @@ use Joomla\Plugin\Filesystem\S3\Library\Exception\CannotPutFile;
 use Joomla\Plugin\Filesystem\S3\Library\Input;
 use Joomla\Plugin\Filesystem\S3\Library\Request;
 use Joomla\Plugin\Filesystem\S3\Library\Response\Error;
+use Joomla\Plugin\Filesystem\S3\Library\StorageClass;
 use RuntimeException;
 use stdClass;
 
@@ -229,6 +231,16 @@ class S3Filesystem implements AdapterInterface
 	private $storageClass = 'STANDARD';
 
 	/**
+	 * Temporary files created via getFile().
+	 *
+	 * These files will be removed when the adapter object is destroyed.
+	 *
+	 * @var   array
+	 * @since 1.0.0
+	 */
+	private $tempFiles = [];
+
+	/**
 	 * Private constructor
 	 *
 	 * @param   array  $setup
@@ -343,6 +355,24 @@ class S3Filesystem implements AdapterInterface
 	}
 
 	/**
+	 * Destructor.
+	 *
+	 * Cleans up the temporary files created by this adapter.
+	 *
+	 * @since   1.0.0
+	 */
+	public function __destruct()
+	{
+		foreach ($this->tempFiles as $filePath)
+		{
+			if (@file_exists($filePath) && @is_file($filePath))
+			{
+				@unlink($filePath);
+			}
+		}
+	}
+
+	/**
 	 * Copies a file or folder from source to destination.
 	 *
 	 * It returns the new destination path. This allows the implementation classes to normalise the file name.
@@ -369,9 +399,9 @@ class S3Filesystem implements AdapterInterface
 
 		$dirPrefix              = $this->directory . (empty($this->directory) ? '' : '/');
 		$sourcePathAbsolute     = $dirPrefix . $sourcePath;
-		$destinationPathAbsolue = $dirPrefix . $destinationPath;
+		$destinationPathAbsolute = $dirPrefix . $destinationPath;
 
-		$this->copyObject($this->bucket, $sourcePathAbsolute, $destinationPathAbsolue, Acl::ACL_PUBLIC_READ);
+		$this->copyObject($this->bucket, $sourcePathAbsolute, $destinationPathAbsolute, Acl::ACL_PUBLIC_READ, $this->storageClass);
 
 		return $destinationPath;
 	}
@@ -451,7 +481,7 @@ class S3Filesystem implements AdapterInterface
 	public function delete(string $path)
 	{
 		$dirPrefix = $this->directory . (empty($this->directory) ? '' : '/');
-		$path      = $dirPrefix . $path;
+		$path      = $dirPrefix . ltrim($path, '/');
 
 		$this->connector->deleteObject($this->bucket, $path);
 	}
@@ -552,15 +582,15 @@ class S3Filesystem implements AdapterInterface
 
 		$nameKey = $isDir ? 'prefix' : 'name';
 
-		$x = $this->dirListingToJoomlaObject([
+		$ext          = File::getExt(basename(rtrim($path, '/')));
+		$meta['type'] = ($meta['type'] ?? null) === 'application/octet-stream' ? null : ($meta['type'] ?? null);
+		$x            = $this->dirListingToJoomlaObject([
 			$nameKey => rtrim($path, '/'),
 			'time'   => $meta['time'] ?? time(),
 			'hash'   => $meta['hash'] ?? null,
-			'type'   => $meta['type'] ?? 'application/octet-stream',
+			'type'   => $meta['type'] ?? self::MIME_TYPES[$ext] ?? 'application/octet-stream',
 			'size'   => $meta['size'] ?? 0,
 		], $dirPrefix);
-
-		//print_r($x);die;
 
 		return $x;
 	}
@@ -676,18 +706,15 @@ class S3Filesystem implements AdapterInterface
 	 */
 	public function getResource(string $path)
 	{
-		$fp = tmpfile();
-
-		if (!$fp)
-		{
-			return $fp;
-		}
+		$tempPath          = Factory::getApplication()->get('tmp_path', sys_get_temp_dir());
+		$tempName          = tempnam($tempPath, 'jmes3_');
+		$this->tempFiles[] = $tempName;
 
 		$dirPrefix = $this->directory . (empty($this->directory) ? '' : '/');
 
-		$this->connector->getObject($this->bucket, $dirPrefix . $path, $fp);
+		$this->connector->getObject($this->bucket, $dirPrefix . ltrim($path, '/'), $tempName);
 
-		return $fp;
+		return @fopen($tempName, 'r');
 	}
 
 	/**
@@ -833,14 +860,18 @@ class S3Filesystem implements AdapterInterface
 	 *
 	 * @return  void
 	 * @since   1.0.0
+	 *
+	 * @see     https://docs.aws.amazon.com/AmazonS3/latest/API/API_CopyObject.html
 	 */
-	private function copyObject(string $bucket, string $from, string $to, string $acl = Acl::ACL_PRIVATE): void
+	private function copyObject(string $bucket, string $from, string $to, string $acl = Acl::ACL_PRIVATE, $storageClass = StorageClass::STANDARD): void
 	{
 		$request = new Request('PUT', $bucket, $to, $this->connector->getConfiguration());
 		$request->setAmzHeader('x-amz-copy-source', $bucket . '/' . $from);
+		$request->setAmzHeader('x-amz-acl', $acl);
+		$request->setAmzHeader('x-amz-storage-class', $storageClass);
 		$response = $request->getResponse();
 
-		if (!$response->error->isError() && ($response->code !== 204))
+		if (!$response->error->isError() && ($response->code !== 200))
 		{
 			$response->error = new Error(
 				$response->code,
@@ -927,8 +958,10 @@ class S3Filesystem implements AdapterInterface
 
 			if ($this->isCloudFront)
 			{
+				$ext = File::getExt(basename($obj->path));
 				$uri = new Uri($obj->thumb_path);
 				$uri->setVar('d', '100x100');
+				$uri->setVar('dummy', 'file.' . $ext);
 
 				$obj->thumb_path = $uri->toString();
 			}
