@@ -71,7 +71,7 @@ class S3 extends CMSPlugin implements SubscriberInterface, ProviderInterface
 		{
 			try
 			{
-				$adapter = S3Filesystem::getFromConnection($connection);
+				$adapter = S3Filesystem::getFromConnection((array) $connection);
 			}
 			catch (\Exception $e)
 			{
