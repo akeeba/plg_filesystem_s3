@@ -237,7 +237,7 @@ class S3Filesystem implements AdapterInterface
 		$region       = $connection['region'] ?? 'us-east-1';
 		$customRegion = $connection['$region'] ?? '';
 		$setup        = [
-			'accessKey'      => $connection['accessKey'] ?? '',
+			'accessKey'      => $connection['accesskey'] ?? '',
 			'bucket'         => $connection['bucket'] ?? '',
 			'cdnUrl'         => $isCloudFront ? ($cdnUrl) : null,
 			'customEndpoint' => $type === 'custom' ? $connection['customendpoint'] : null,
@@ -247,7 +247,7 @@ class S3Filesystem implements AdapterInterface
 			'isPathAccess'   => ($connection['pathaccess'] ?? '') === 'path',
 			'name'           => $connection['label'] ?? null,
 			'region'         => $region === 'custom' ? $customRegion : $region,
-			'secretKey'      => $connection['secretKey'] ?? '',
+			'secretKey'      => $connection['secretkey'] ?? '',
 			'signature'      => in_array($signature, ['v2', 'v4']) ? $signature : 'v4',
 			'storageClass'   => $connection['storage_class'] ?? 'STANDARD',
 		];
