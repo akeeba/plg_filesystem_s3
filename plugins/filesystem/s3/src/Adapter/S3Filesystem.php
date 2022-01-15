@@ -489,8 +489,34 @@ class S3Filesystem implements AdapterInterface
 	 */
 	public function delete(string $path)
 	{
+		$info = $this->getFile($path);
+
+		// Recursively delete a directory. Get ready for some funky timeouts, LOL
+		if ($info->type === 'dir')
+		{
+			$files = $this->getFiles($path);
+
+			foreach ($files as $file)
+			{
+				$filePath = rtrim($path, '/') . '/' . $file->name;
+				try
+				{
+					$this->delete($filePath);
+				}
+				catch (FileNotFoundException $e)
+				{
+					// No worries...
+				}
+			}
+		}
+
 		$dirPrefix = $this->directory . (empty($this->directory) ? '' : '/');
 		$path      = $dirPrefix . ltrim($path, '/');
+
+		if ($info->type === 'dir')
+		{
+			$path .= '/';
+		}
 
 		$this->connector->deleteObject($this->bucket, $path);
 	}
