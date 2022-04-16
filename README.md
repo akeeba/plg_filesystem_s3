@@ -2,7 +2,7 @@
 
 Integrate Amazon S3, CloudFront and Amazon S3–compatible storage with Joomla!'s Media Manager.
 
-[Downloads](https://github.com/akeeba/plg_filesystem_s3/releases) • [Documentation](https://github.com/akeeba/plg_filesystem_s3/blob/main/docs/index.md)
+[Downloads](https://github.com/akeeba/plg_filesystem_s3/releases) • [Documentation](https://github.com/akeeba/plg_filesystem_s3/blob/development/docs/index.md)
 
 ## About
 
