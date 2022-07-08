@@ -1,4 +1,4 @@
-<!-- Dark Magic update provisioning XML stream -->
+<!-- Amazon S3 Filesystem for Joomla update provisioning XML stream -->
 <updates>
     <update>
         <version>1.0.0</version>
