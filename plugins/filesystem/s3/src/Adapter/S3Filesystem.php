@@ -270,7 +270,7 @@ class S3Filesystem implements AdapterInterface
 		$this->bucket = str_replace('/', '', $this->bucket);
 
 		// Makes sure the custom endpoint has no protocol and no trailing slash
-		$customEndpoint = trim($this->customEndpoint);
+		$customEndpoint = trim($this->customEndpoint ?? '');
 		$useSSL         = true;
 
 		if (!empty($customEndpoint))
