@@ -624,12 +624,13 @@ class S3Filesystem implements AdapterInterface
 
 		$ext          = File::getExt(basename(rtrim($path, '/')));
 		$meta['type'] = ($meta['type'] ?? null) === 'application/octet-stream' ? null : ($meta['type'] ?? null);
+		$timeTemp     = $meta['time'] ?? null;
 		$x            = $this->dirListingToJoomlaObject([
 			$nameKey => rtrim($path, '/'),
-			'time'   => $meta['time'] ?? time(),
+			'time'   => is_numeric($timeTemp) ? (int)$timeTemp : time(),
 			'hash'   => $meta['hash'] ?? null,
 			'type'   => $meta['type'] ?? self::MIME_TYPES[$ext] ?? 'application/octet-stream',
-			'size'   => $meta['size'] ?? 0,
+			'size'   => (int) ($meta['size'] ?? 0),
 		], $dirPrefix);
 
 		return $x;
@@ -688,7 +689,6 @@ class S3Filesystem implements AdapterInterface
 
 		if (!empty(trim($path, '/')))
 		{
-
 			try
 			{
 				$singularFile = $this->getFile($path);
@@ -788,7 +788,7 @@ class S3Filesystem implements AdapterInterface
 		$dirPrefix = $this->directory . (empty($this->directory) ? '' : '/');
 		$path      = trim($path, '/');
 
-		return $this->connector->getAuthenticatedURL($this->bucket, $dirPrefix . $path, 315360000, true);
+		return $this->connector->getAuthenticatedURL($this->bucket, $dirPrefix . $path, 3600, true);
 	}
 
 	/**

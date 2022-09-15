@@ -140,6 +140,11 @@ class Preview
 	 */
 	public function getResized(string $url): string
 	{
+		if (!$this->lambdaResize)
+		{
+			return $url;
+		}
+
 		$uri      = new Uri($url);
 		$fileName = basename($uri->getPath());
 		$ext      = strtolower(File::getExt($fileName) ?: '');
