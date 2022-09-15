@@ -3,6 +3,7 @@ Amazon S3 Filesystem for Joomla 1.0.1
 # [HIGH] Some S3 buckets may return directories with an empty name, breaking Media manager
 # [HIGH] Clicking the sidebar folder names leads to an error
 # [LOW] PHP 8 warning
+# [LOW] PHP 8 deprecated notice
 
 Amazon S3 Filesystem for Joomla 1.0.0
 ================================================================================
