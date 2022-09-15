@@ -726,10 +726,12 @@ class S3Filesystem implements AdapterInterface
 			$marker    = array_pop($filenames);
 		} while (true);
 
-		file_put_contents(JPATH_SITE . '/debug.txt', print_r([
-			'path'    => $path,
-			'listing' => array_values($listing),
-		], true));
+		$listing = array_filter(
+			array_values($listing),
+			function (object $item) {
+				return !empty($item->name ?? '');
+			}
+		);
 
 		return array_values($listing);
 	}
