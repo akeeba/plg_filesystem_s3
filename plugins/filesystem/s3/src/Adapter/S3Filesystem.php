@@ -688,11 +688,19 @@ class S3Filesystem implements AdapterInterface
 
 		if (!empty(trim($path, '/')))
 		{
-			$joomlaStupid = $this->getFile($path);
 
-			if ($joomlaStupid->type === 'file')
+			try
 			{
-				return [$joomlaStupid];
+				$singularFile = $this->getFile($path);
+
+				if ($singularFile->type === 'file')
+				{
+					return [$singularFile];
+				}
+			}
+			catch (Exception $e)
+			{
+				// Okay, this is a directory. Let's move on.
 			}
 		}
 
