@@ -5,7 +5,7 @@
   ~ @license   GPLv3 or later
   -->
 
-<extension version="4.0.0" type="plugin" group="filesystem" method="upgrade">
+<extension type="plugin" group="filesystem" method="upgrade">
     <name>PLG_FILESYSTEM_S3</name>
     <author>Akeeba Ltd</author>
     <authorEmail>no-reply@akeeba.com</authorEmail>
