@@ -259,7 +259,7 @@
     </config>
 
     <updateservers>
-        <server type="extension" priority="1" name="DarkMagic for Joomla 4 Updates">
+        <server type="extension" priority="1" name="S3 Filesystem for Joomla 4 Updates">
             https://raw.githubusercontent.com/akeeba/plg_filesystem_s3/development/update/plg_filesystem_s3.xml
         </server>
     </updateservers>
