@@ -1,7 +1,7 @@
 <?php
 /*
  * @package   PlgFilesystemS3
- * @copyright Copyright © 2022 Akeeba Ltd / Nicholas K. Dionysopoulos
+ * @copyright Copyright (c)2022 Akeeba Ltd / Nicholas K. Dionysopoulos
  * @license   GPLv3 or later
  */
 
