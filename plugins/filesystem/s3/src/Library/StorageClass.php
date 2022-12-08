@@ -9,6 +9,8 @@
 
 namespace Joomla\Plugin\Filesystem\S3\Library;
 
+defined('_JEXEC') or die();
+
 /**
  * Amazon S3 Storage Classes
  *
