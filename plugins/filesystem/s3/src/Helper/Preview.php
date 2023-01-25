@@ -28,8 +28,6 @@ use Joomla\Registry\Registry;
  */
 class Preview
 {
-	const MAX_THUMBNAIL_TIME = 5;
-
 	/**
 	 * Preview images in all connection containers
 	 *
@@ -94,11 +92,41 @@ class Preview
 	 */
 	private $resizedDimension = 100;
 
+	/**
+	 * Should I create and cache local thumbnails?
+	 *
+	 * @var   bool
+	 * @since 1.0.2
+	 */
 	private $cacheThumbnails = false;
 
+	/**
+	 * Absolute filesystem path to the local thumbnails cache folder.
+	 *
+	 * @var   string
+	 * @since 1.0.02
+	 */
 	private $cachePath;
 
+	/**
+	 * Timestamp of the plugin loading.
+	 *
+	 * This is used to determine whether there is enough time to generate missing thumbnails without the request taking
+	 * too long to be practical or, worse, fail altogether by hitting a server time limit (PHP, web server, maximum CPU
+	 * usage, ...).
+	 *
+	 * @var   int
+	 * @since 1.0.2
+	 */
 	private $startTime = 0;
+
+	/**
+	 * Maximum amount of time in seconds, measured from the plugin load, to spend creating thumbnails.
+	 *
+	 * @var   float
+	 * @since 1.0.2
+	 */
+	private $maxThumbnailTime = 5.0;
 
 	/**
 	 * Public constructor
@@ -117,6 +145,7 @@ class Preview
 		$this->resizedDimension  = (int) $options->get('resizedDimension', '100');
 		$this->cacheThumbnails   = $options->get('cache_thumbnails', 0) == 1;
 		$this->cacheThumbnails   = $this->cacheThumbnails && $this->canResizeImages();
+		$this->maxThumbnailTime  = min(max($options->get('max_thumbnail_time', 5.0), 1.0), 120.0);
 		$this->cachePath         = JPATH_ROOT . '/media/plg_filesystem_s3/cache';
 
 		if ($this->cacheThumbnails && !is_dir($this->cachePath) && !@mkdir($this->cachePath, 0755, true))
@@ -348,7 +377,7 @@ class Preview
 		}
 
 		// If I've run out of time: return original image URL
-		if (time() - $this->startTime > self::MAX_THUMBNAIL_TIME)
+		if (time() - $this->startTime > $this->maxThumbnailTime)
 		{
 			return $url;
 		}
@@ -365,7 +394,7 @@ class Preview
 		try
 		{
 			$http     = HttpFactory::getHttp();
-			$response = $http->get($url, [], self::MAX_THUMBNAIL_TIME);
+			$response = $http->get($url, [], $this->maxThumbnailTime);
 
 			if ($response->getStatusCode() != 200)
 			{

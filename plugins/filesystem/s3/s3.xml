@@ -217,6 +217,7 @@
                        label="PLG_FILESYSTEM_S3_CONFIG_PREVIEW_LABEL"
                        description="PLG_FILESYSTEM_S3_CONFIG_PREVIEW_DESC"
                        default="always"
+                       validate="options"
                 >
                     <option value="never">PLG_FILESYSTEM_S3_CONFIG_PREVIEW_NEVER</option>
                     <option value="cloudfront">PLG_FILESYSTEM_S3_CONFIG_PREVIEW_CLOUDFRONT</option>
@@ -249,17 +250,29 @@
                        label="PLG_FILESYSTEM_S3_CONFIG_CACHE_THUMBNAILS_LABEL"
                        description="PLG_FILESYSTEM_S3_CONFIG_CACHE_THUMBNAILS_DESC"
                        default="0"
+                       validate="options"
                        showon="preview!:custom[AND]lambdaResize:0"
                 >
                     <option value="0">JNO</option>
                     <option value="1">JYES</option>
                 </field>
 
+                <field name="max_thumbnail_time"
+                       type="number"
+                       label="PLG_FILESYSTEM_S3_CONFIG_MAX_THUMBNAIL_TIME_LABEL"
+                       description="PLG_FILESYSTEM_S3_CONFIG_MAX_THUMBNAIL_TIME_DESC"
+                       default="5"
+                       min="1.0"
+                       max="120.0"
+                       validate="number"
+                       showon="preview!:custom[AND]lambdaResize:0"
+                />
+
                 <field name="resizedDimension"
                        type="integer"
                        first="100"
                        last="400"
-                       step="100"
+                       step="10"
                        label="PLG_FILESYSTEM_S3_CONFIG_RESIZEDIMENSION_LABEL"
                        description="PLG_FILESYSTEM_S3_CONFIG_RESIZEDIMENSION_DESC"
                        default="200"
