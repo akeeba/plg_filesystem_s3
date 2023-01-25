@@ -237,7 +237,19 @@
                        label="PLG_FILESYSTEM_S3_CONFIG_LAMBDARESIZE_LABEL"
                        description="PLG_FILESYSTEM_S3_CONFIG_LAMBDARESIZE_DESC"
                        default="0"
-                       showon="preview!:custom"
+                       showon="preview!:never"
+                >
+                    <option value="0">JNO</option>
+                    <option value="1">JYES</option>
+                </field>
+
+                <field name="cache_thumbnails"
+                       type="radio"
+                       layout="joomla.form.field.radio.switcher"
+                       label="PLG_FILESYSTEM_S3_CONFIG_CACHE_THUMBNAILS_LABEL"
+                       description="PLG_FILESYSTEM_S3_CONFIG_CACHE_THUMBNAILS_DESC"
+                       default="0"
+                       showon="preview!:custom[AND]lambdaResize:0"
                 >
                     <option value="0">JNO</option>
                     <option value="1">JYES</option>
@@ -250,13 +262,15 @@
                        step="100"
                        label="PLG_FILESYSTEM_S3_CONFIG_RESIZEDIMENSION_LABEL"
                        description="PLG_FILESYSTEM_S3_CONFIG_RESIZEDIMENSION_DESC"
-                       default="100"
-                       showon="preview!:custom[AND]lambdaResize:1"
+                       default="200"
+                       showon="preview!:never[AND]lambdaResize:1[OR]cache_thumbnails:1"
                 />
 
             </fieldset>
         </fields>
     </config>
+
+    <scriptfile>script.plg_filesystem_s3.php</scriptfile>
 
     <updateservers>
         <server type="extension" priority="1" name="S3 Filesystem for Joomla 4 Updates">

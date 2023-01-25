@@ -9,8 +9,13 @@ namespace Joomla\Plugin\Filesystem\S3\Helper;
 
 defined('_JEXEC') or die;
 
+use Joomla\CMS\Date\Date;
+use Joomla\CMS\Factory;
 use Joomla\CMS\Filesystem\File;
+use Joomla\CMS\Filesystem\Folder;
 use Joomla\CMS\Helper\MediaHelper;
+use Joomla\CMS\Http\HttpFactory;
+use Joomla\CMS\Image\Image;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Registry\Registry;
 
@@ -23,6 +28,8 @@ use Joomla\Registry\Registry;
  */
 class Preview
 {
+	const MAX_THUMBNAIL_TIME = 5;
+
 	/**
 	 * Preview images in all connection containers
 	 *
@@ -87,6 +94,12 @@ class Preview
 	 */
 	private $resizedDimension = 100;
 
+	private $cacheThumbnails = false;
+
+	private $cachePath;
+
+	private $startTime = 0;
+
 	/**
 	 * Public constructor
 	 *
@@ -97,10 +110,24 @@ class Preview
 	 */
 	public function __construct(Registry $options)
 	{
+		$this->startTime         = time();
 		$this->lambdaResize      = $options->get('lambdaResize', '0') == '1';
 		$this->preview           = $options->get('preview', self::PREVIEW_ALWAYS);
 		$this->previewExtensions = $options->get('previewExtensions', 'png,gif,jpg,jpeg,bmp,webp,pdf,svg');
 		$this->resizedDimension  = (int) $options->get('resizedDimension', '100');
+		$this->cacheThumbnails   = $options->get('cache_thumbnails', 0) == 1;
+		$this->cacheThumbnails   = $this->cacheThumbnails && $this->canResizeImages();
+		$this->cachePath         = JPATH_ROOT . '/media/plg_filesystem_s3/cache';
+
+		if ($this->cacheThumbnails && !is_dir($this->cachePath) && !@mkdir($this->cachePath, 0755, true))
+		{
+			$this->cacheThumbnails = false;
+		}
+
+		if ($this->cacheThumbnails && !@is_writable($this->cachePath))
+		{
+			$this->cacheThumbnails = false;
+		}
 
 		// Constrain the preview option
 		if (!in_array($this->preview, [self::PREVIEW_NONE, self::PREVIEW_CLOUDFRONT, self::PREVIEW_ALWAYS]))
@@ -132,14 +159,20 @@ class Preview
 	/**
 	 * Get the Lambda at Edge resized format of the image.
 	 *
-	 * @param   string  $url
+	 * @param   string     $url               The source image URL
+	 * @param   Date|null  $lastModifiedDate  The file's last modified date
 	 *
 	 * @return  string
 	 *
 	 * @since   1.0.0
 	 */
-	public function getResized(string $url): string
+	public function getResized(string $url, ?Date $lastModifiedDate): string
 	{
+		if (!$this->lambdaResize && $this->cacheThumbnails)
+		{
+			return $this->getResizedLocalUrl($url, $lastModifiedDate);
+		}
+
 		if (!$this->lambdaResize)
 		{
 			return $url;
@@ -227,5 +260,193 @@ class Preview
 		}
 
 		return true;
+	}
+
+	/**
+	 * Can I resize images locally?
+	 *
+	 * @return  bool
+	 *
+	 * @since   1.0.2
+	 */
+	private function canResizeImages()
+	{
+		return array_reduce(
+			[
+				'getimagesize',
+				'imagecolorallocatealpha',
+				'imagecolortransparent',
+				'imagecreatetruecolor',
+				'imagealphablending',
+				'imagesavealpha',
+				'imagefill',
+				'imagecopyresized',
+				'imagecopyresampled',
+				'imagewebp',
+				'imagecreatefromgif',
+				'imagecreatefromjpeg',
+				'imagecreatefrompng',
+				'imagecreatefromwebp',
+			],
+			function ($carry, $x) {
+				return $carry && function_exists($x);
+			},
+			true
+		);
+	}
+
+	/**
+	 * Get a (cached) local thumbnail URL.
+	 *
+	 * If the local thumbnail does not exist we will try to create it form the original image, as long as there is
+	 * enough time for us to process it.
+	 *
+	 * @throws  \Exception
+	 * @since   1.0.2
+	 */
+	private function getResizedLocalUrl(string $url, ?Date $lastModifiedDate): string
+	{
+		// I need the last modified date.
+		if (!$lastModifiedDate instanceof Date)
+		{
+			return $url;
+		}
+
+		// Make sure it's a supported file extension
+		$parts     = explode('.', $url);
+		$extension = strtolower(array_pop($parts));
+
+		if (!in_array($extension, ['gif', 'jpg', 'jpeg', 'png', 'webp']))
+		{
+			return $url;
+		}
+
+		// Get the local filename
+		$localHash      = md5($url . '::' . $lastModifiedDate->toRFC822());
+		$localBaseName  = $localHash . '.webp';
+		$localDirToRoot = 'media/plg_filesystem_s3/cache/' . $this->distributeToSubdirectories($localHash);
+		$localPathName  = JPATH_ROOT . '/' . $localDirToRoot . '/' . $localBaseName;
+		$localUrl       = Uri::root() . $localDirToRoot . '/' . $localBaseName;
+
+		// Return the local path if it's already cached
+		if (@file_exists($localPathName))
+		{
+			$localModTime = filemtime($localPathName);
+
+			if ($localModTime !== false && $localModTime >= $lastModifiedDate->getTimestamp())
+			{
+				$filesize = @filesize($localPathName);
+
+				// If the filesize is 0 we couldn't create a thumbnail. Don't waste any more time.
+				if ($filesize !== false && $filesize > 0)
+				{
+					return $localUrl;
+				}
+
+				return $url;
+			}
+		}
+
+		// If I've run out of time: return original image URL
+		if (time() - $this->startTime > self::MAX_THUMBNAIL_TIME)
+		{
+			return $url;
+		}
+
+		// If the temp directory doesn't exist or can't be written to: no can do.
+		$tempDir = Factory::getApplication()->get('tmp_path', sys_get_temp_dir());
+
+		if (!@is_dir($tempDir) || !@is_writable($tempDir))
+		{
+			return $url;
+		}
+
+		// Download the original image into temp storage.
+		try
+		{
+			$http     = HttpFactory::getHttp();
+			$response = $http->get($url, [], self::MAX_THUMBNAIL_TIME);
+
+			if ($response->getStatusCode() != 200)
+			{
+				return $url;
+			}
+
+			$tempFile = tempnam($tempDir, 'plgs3_');
+			file_put_contents($tempFile, $response->getBody());
+			unset($response);
+		}
+		catch (\Throwable $e)
+		{
+			file_put_contents($localPathName, '');
+
+			return $url;
+		}
+
+		// Resize and return
+		try
+		{
+			// Make sure the local cache path exists
+			if (!@is_dir(dirname($localPathName)) && !@mkdir(dirname($localPathName), 0755, true))
+			{
+				return $url;
+			}
+
+			$image = new Image($tempFile);
+
+			$image = $image->resize($this->resizedDimension, $this->resizedDimension, false);
+
+			if (!$image->toFile($localPathName, IMAGETYPE_WEBP))
+			{
+				file_put_contents($localPathName, '');
+
+				return $url;
+			}
+
+			return $localUrl;
+		}
+		catch (\Exception $e)
+		{
+			file_put_contents($localPathName, '');
+
+			return $url;
+		}
+		finally
+		{
+			if (isset($image))
+			{
+				unset($image);
+			}
+
+			@unlink($tempFile);
+		}
+	}
+
+	/**
+	 * Distribute an MD5 hash to subdirectories.
+	 *
+	 * For example, `0a1b2c3d4e5f67890a1b2c3d4e5f6789` with 3 levels and 2 characters per level will be distributed to
+	 * subdirectory `0a/1b/2c`.
+	 *
+	 * @param   string  $hash           The hash to distribute
+	 * @param   int     $levels         How many directory levels?
+	 * @param   int     $charsPerLevel  How many characters per directory level?
+	 *
+	 * @return  string
+	 *
+	 * @since        1.0.2
+	 * @noinspection PhpSameParameterValueInspection
+	 */
+	private function distributeToSubdirectories(string $hash, int $levels = 3, int $charsPerLevel = 2): string
+	{
+		$chunks    = str_split($hash, $charsPerLevel);
+		$pathParts = [];
+
+		for ($i = 0; $i < $levels; $i++)
+		{
+			$pathParts[] = $chunks[$i];
+		}
+
+		return implode('/', $pathParts);
 	}
 }

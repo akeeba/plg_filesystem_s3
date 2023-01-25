@@ -1,3 +1,7 @@
+Amazon S3 Filesystem for Joomla 1.0.2
+================================================================================
++ Thumbnails caching on the local filesystem
+
 Amazon S3 Filesystem for Joomla 1.0.1
 ================================================================================
 # [HIGH] Some S3 buckets may return directories with an empty name, breaking Media manager

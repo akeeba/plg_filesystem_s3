@@ -911,7 +911,15 @@ class S3Filesystem implements AdapterInterface
 		return $listing;
 	}
 
-	public function setPreview(Preview $preview)
+	/**
+	 * Set the preview helper object
+	 *
+	 * @param   Preview  $preview
+	 *
+	 * @return  void
+	 * @since   1.0.0
+	 */
+	public function setPreview(Preview $preview): void
 	{
 		$this->preview = $preview;
 	}
@@ -1046,7 +1054,7 @@ class S3Filesystem implements AdapterInterface
 		 */
 		if (($type === 'file') && $this->preview->shouldPreview($obj->path, $this->isCloudFront))
 		{
-			$obj->thumb_path = $this->preview->getResized($this->getUrl($obj->path));
+			$obj->thumb_path = $this->preview->getResized($this->getUrl($obj->path), $date ?? null);
 		}
 
 		return $obj;
@@ -1116,5 +1124,4 @@ class S3Filesystem implements AdapterInterface
 
 		return $name;
 	}
-
 }
