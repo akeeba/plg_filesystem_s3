@@ -359,6 +359,9 @@ class S3Filesystem implements AdapterInterface
 		// Return the new S3 client instance
 		$this->connector = new Connector($configuration);
 
+		// If the cache lifetime is zero the caching is de facto disabled
+		$this->cachingEnabled = $this->cachingEnabled && ($this->cacheLifetime > 0) && true;
+
 		// Set up the hashing salt for the callback cache controller
 		$this->cacheSalt = md5(serialize($setup ?? []));
 	}
@@ -394,6 +397,8 @@ class S3Filesystem implements AdapterInterface
 			'secretKey'      => $connection['secretkey'] ?? '',
 			'signature'      => in_array($signature, ['v2', 'v4']) ? $signature : 'v4',
 			'storageClass'   => $connection['storage_class'] ?? 'STANDARD',
+			'cachingEnabled' => ($connection['caching'] ?? 0) == 1,
+			'cacheLifetime'  => min(max(0, $connection['cache_time'] ?? 300), 31536000),
 		];
 
 		return new self($setup);
@@ -671,7 +676,7 @@ class S3Filesystem implements AdapterInterface
 				$meta = $this->getCacheController()->get(
 					function ($path) {
 						return $this->connector->headObject($this->bucket, $path);
-				},
+					},
 					$path . '/',
 					$this->getCacheId($path, 'head')
 				);
@@ -755,7 +760,7 @@ class S3Filesystem implements AdapterInterface
 			try
 			{
 				$singularFile = $this->getCacheController()->get(
-					function($path) {
+					function ($path) {
 						return $this->getFile($path);
 					},
 					$path,
@@ -774,8 +779,7 @@ class S3Filesystem implements AdapterInterface
 		}
 
 		$listing = $this->getCacheController()->get(
-			function($path)
-			{
+			function ($path) {
 				$dirPrefix = $this->directory . (empty($this->directory) ? '' : '/');
 				$path      = trim($path, '/');
 				$path      = $dirPrefix . $path . '/';
