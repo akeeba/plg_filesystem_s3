@@ -1,6 +1,7 @@
 Amazon S3 Filesystem for Joomla 1.0.2
 ================================================================================
 + Thumbnails caching on the local filesystem
++ Local caching of Amazon S3 file operations
 
 Amazon S3 Filesystem for Joomla 1.0.1
 ================================================================================

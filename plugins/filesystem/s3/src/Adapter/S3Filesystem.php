@@ -10,6 +10,9 @@ namespace Joomla\Plugin\Filesystem\S3\Adapter;
 defined('_JEXEC') or die;
 
 use Exception;
+use Joomla\CMS\Cache\CacheController;
+use Joomla\CMS\Cache\CacheControllerFactoryInterface;
+use Joomla\CMS\Cache\Controller\CallbackController;
 use Joomla\CMS\Date\Date;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filesystem\File;
@@ -248,6 +251,38 @@ class S3Filesystem implements AdapterInterface
 	private $tempFiles = [];
 
 	/**
+	 * Is caching of S3 requests enabled?
+	 *
+	 * @var   bool
+	 * @since 1.0.2
+	 */
+	private $cachingEnabled = false;
+
+	/**
+	 * Cache lifetime for S3 requests.
+	 *
+	 * @var   int
+	 * @since 1.0.2
+	 */
+	private $cacheLifetime = 300;
+
+	/**
+	 * The cache controller used to implement the S3 request caching.
+	 *
+	 * @var   CacheController|null
+	 * @since 1.0.2
+	 */
+	private $cacheController = null;
+
+	/**
+	 * The instance-specific salt to use for the callback cache controller.
+	 *
+	 * @var   string
+	 * @since 1.0.2
+	 */
+	private $cacheSalt;
+
+	/**
 	 * Private constructor
 	 *
 	 * @param   array  $setup
@@ -323,6 +358,12 @@ class S3Filesystem implements AdapterInterface
 
 		// Return the new S3 client instance
 		$this->connector = new Connector($configuration);
+
+		// If the cache lifetime is zero the caching is de facto disabled
+		$this->cachingEnabled = $this->cachingEnabled && ($this->cacheLifetime > 0) && true;
+
+		// Set up the hashing salt for the callback cache controller
+		$this->cacheSalt = md5(serialize($setup ?? []));
 	}
 
 	/**
@@ -356,6 +397,8 @@ class S3Filesystem implements AdapterInterface
 			'secretKey'      => $connection['secretkey'] ?? '',
 			'signature'      => in_array($signature, ['v2', 'v4']) ? $signature : 'v4',
 			'storageClass'   => $connection['storage_class'] ?? 'STANDARD',
+			'cachingEnabled' => ($connection['caching'] ?? 0) == 1,
+			'cacheLifetime'  => min(max(0, $connection['cache_time'] ?? 300), 31536000),
 		];
 
 		return new self($setup);
@@ -417,6 +460,9 @@ class S3Filesystem implements AdapterInterface
 
 		$this->copyObject($this->bucket, $sourcePathAbsolute, $destinationPathAbsolute, Acl::ACL_PUBLIC_READ, $this->storageClass);
 
+		// Clear the cache for the destination folder
+		$this->uncacheDirectory(dirname($destinationPath) ?: '/');
+
 		return $destinationPath;
 	}
 
@@ -450,6 +496,9 @@ class S3Filesystem implements AdapterInterface
 
 		$this->connector->putObject($input, $this->bucket, $directory . $name, Acl::ACL_PUBLIC_READ, $headers);
 
+		// Clear the cache for the path where the file was created in
+		$this->uncacheDirectory($path);
+
 		return $name;
 	}
 
@@ -479,6 +528,9 @@ class S3Filesystem implements AdapterInterface
 
 		$this->connector->putObject($input, $this->bucket, $directory . $name . '/', Acl::ACL_PUBLIC_READ);
 
+		// Clear the cache for the path where the folder was created in
+		$this->uncacheDirectory($path);
+
 		return $name;
 	}
 
@@ -495,6 +547,9 @@ class S3Filesystem implements AdapterInterface
 	public function delete(string $path)
 	{
 		$info = $this->getFile($path);
+
+		// Clear the cache for the parent path
+		$this->uncacheDirectory(dirname($path) ?: '/');
 
 		// Recursively delete a directory. Get ready for some funky timeouts, LOL
 		if ($info->type === 'dir')
@@ -598,7 +653,14 @@ class S3Filesystem implements AdapterInterface
 
 		try
 		{
-			$meta  = $this->connector->headObject($this->bucket, $path);
+			$meta = $this->getCacheController()->get(
+				function ($path) {
+					return $this->connector->headObject($this->bucket, $path);
+				},
+				$path,
+				$this->getCacheId($path, 'head')
+			);
+
 			$found = true;
 		}
 		catch (CannotGetFile $e)
@@ -611,7 +673,14 @@ class S3Filesystem implements AdapterInterface
 		{
 			try
 			{
-				$meta  = $this->connector->headObject($this->bucket, $path . '/');
+				$meta = $this->getCacheController()->get(
+					function ($path) {
+						return $this->connector->headObject($this->bucket, $path);
+					},
+					$path . '/',
+					$this->getCacheId($path, 'head')
+				);
+
 				$isDir = true;
 			}
 			catch (CannotGetFile $e)
@@ -625,15 +694,14 @@ class S3Filesystem implements AdapterInterface
 		$ext          = File::getExt(basename(rtrim($path, '/')));
 		$meta['type'] = ($meta['type'] ?? null) === 'application/octet-stream' ? null : ($meta['type'] ?? null);
 		$timeTemp     = $meta['time'] ?? null;
-		$x            = $this->dirListingToJoomlaObject([
+
+		return $this->dirListingToJoomlaObject([
 			$nameKey => rtrim($path, '/'),
-			'time'   => is_numeric($timeTemp) ? (int)$timeTemp : time(),
+			'time'   => is_numeric($timeTemp) ? (int) $timeTemp : time(),
 			'hash'   => $meta['hash'] ?? null,
 			'type'   => $meta['type'] ?? self::MIME_TYPES[$ext] ?? 'application/octet-stream',
 			'size'   => (int) ($meta['size'] ?? 0),
 		], $dirPrefix);
-
-		return $x;
 	}
 
 	/**
@@ -691,7 +759,13 @@ class S3Filesystem implements AdapterInterface
 		{
 			try
 			{
-				$singularFile = $this->getFile($path);
+				$singularFile = $this->getCacheController()->get(
+					function ($path) {
+						return $this->getFile($path);
+					},
+					$path,
+					$this->getCacheId($path)
+				);
 
 				if ($singularFile->type === 'file')
 				{
@@ -704,44 +778,52 @@ class S3Filesystem implements AdapterInterface
 			}
 		}
 
-		$dirPrefix = $this->directory . (empty($this->directory) ? '' : '/');
-		$path      = trim($path, '/');
-		$path      = $dirPrefix . $path . '/';
-		$path      = substr($path, -2) === '//' ? substr($path, 0, -1) : $path;
-		$path      = ($path === '/') ? null : $path;
-		$marker    = null;
-		$listing   = [];
+		$listing = $this->getCacheController()->get(
+			function ($path) {
+				$dirPrefix = $this->directory . (empty($this->directory) ? '' : '/');
+				$path      = trim($path, '/');
+				$path      = $dirPrefix . $path . '/';
+				$path      = substr($path, -2) === '//' ? substr($path, 0, -1) : $path;
+				$path      = ($path === '/') ? null : $path;
+				$marker    = null;
+				$listing   = [];
 
-		do
-		{
-			$sublisting = $this->connector->getBucket($this->bucket, $path, $marker, 1000, '/', true);
+				do
+				{
+					$sublisting = $this->connector->getBucket($this->bucket, $path, $marker, 1000, '/', true);
 
-			if (empty($sublisting))
-			{
-				break;
-			}
+					if (empty($sublisting))
+					{
+						break;
+					}
 
-			$listing = array_merge($listing, array_map(function ($raw) use ($dirPrefix) {
-				return $this->dirListingToJoomlaObject($raw, $dirPrefix);
-			}, $sublisting));
+					$listing = array_merge($listing, array_map(function ($raw) use ($dirPrefix) {
+						return $this->dirListingToJoomlaObject($raw, $dirPrefix);
+					}, $sublisting));
 
-			if (count($sublisting) < 1000)
-			{
-				break;
-			}
+					if (count($sublisting) < 1000)
+					{
+						break;
+					}
 
-			$filenames = array_keys($sublisting);
-			$marker    = array_pop($filenames);
-		} while (true);
+					$filenames = array_keys($sublisting);
+					$marker    = array_pop($filenames);
+				} while (true);
 
-		$listing = array_filter(
-			array_values($listing),
-			function (object $item) {
-				return !empty($item->name ?? '');
-			}
+				$listing = array_filter(
+					array_values($listing),
+					function (object $item) {
+						return !empty($item->name ?? '');
+					}
+				);
+
+				return array_values($listing);
+			},
+			$path,
+			$this->getCacheId($path, 'bucket')
 		);
 
-		return array_values($listing);
+		return $listing;
 	}
 
 	/**
@@ -812,7 +894,13 @@ class S3Filesystem implements AdapterInterface
 
 		try
 		{
-			$sourceInfo = $this->getFile($sourcePath);
+			$sourceInfo = $this->getCacheController()->get(
+				function ($sourcePath) {
+					return $this->getFile($sourcePath);
+				},
+				$sourcePath,
+				$this->getCacheId($sourcePath)
+			);
 			$isDir      = $sourceInfo->type === 'dir';
 		}
 		catch (FileNotFoundException $e)
@@ -824,6 +912,9 @@ class S3Filesystem implements AdapterInterface
 		// Recursively move the files of a folder
 		if ($isDir)
 		{
+			$this->uncacheDirectory($sourcePath);
+			$this->uncacheDirectory($destinationPath);
+
 			$files = $this->getFiles($sourcePath);
 
 			foreach ($files as $file)
@@ -1123,5 +1214,77 @@ class S3Filesystem implements AdapterInterface
 		}
 
 		return $name;
+	}
+
+	/**
+	 * Returns a Joomla callback cache controller.
+	 *
+	 * Used to cache the fetched toot information.
+	 *
+	 * @return  CallbackController
+	 * @throws  Exception
+	 * @since   1.0.2
+	 */
+	private function getCacheController(): CallbackController
+	{
+		if ($this->cacheController instanceof CallbackController)
+		{
+			return $this->cacheController;
+		}
+
+		$app = Factory::getApplication();
+
+		$options = [
+			'defaultgroup' => 'plg_filesystem_s3',
+			'cachebase'    => $app->get('cache_path', JPATH_CACHE),
+			'lifetime'     => $this->cacheLifetime,
+			'language'     => $app->get('language', 'en-GB'),
+			'storage'      => $app->get('cache_handler', 'file'),
+			'locking'      => true,
+			'locktime'     => 15,
+			'checkTime'    => true,
+			'caching'      => $this->cachingEnabled,
+
+		];
+
+		return $this->cacheController = Factory::getContainer()
+			->get(CacheControllerFactoryInterface::class)
+			->createCacheController('callback', $options);
+	}
+
+	/**
+	 * Returns the cache ID for a specific S3 path.
+	 *
+	 * @param   string  $path       The S3 path.
+	 * @param   string  $operation  The operation we are interested in (head, get, ...)
+	 *
+	 * @return  string
+	 *
+	 * @since   1.0.2
+	 */
+	private function getCacheId(string $path, string $operation = 'get'): string
+	{
+		$path = trim($path, '/') ?: '/';
+
+		return md5('plg_filesystem_s3:' . $this->cacheSalt . ':' . trim($path, '/') . ':' . strtolower($operation));
+	}
+
+	/**
+	 * Remove any cached requests for a given directory
+	 *
+	 * @param   string  $path  The path to remove from the cache
+	 *
+	 * @throws  Exception
+	 * @since   1.0.2
+	 */
+	private function uncacheDirectory(string $path): void
+	{
+		$path = trim($path, '/') ?: '/';
+
+		$cache = $this->getCacheController()->cache;
+
+		$cache->remove($this->getCacheId($path, 'get'));
+		$cache->remove($this->getCacheId($path, 'head'));
+		$cache->remove($this->getCacheId($path, 'bucket'));
 	}
 }
