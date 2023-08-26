@@ -9,6 +9,7 @@ namespace Joomla\Plugin\Filesystem\S3\Helper;
 
 defined('_JEXEC') or die;
 
+use Joomla\CMS\Application\CMSApplicationInterface;
 use Joomla\CMS\Date\Date;
 use Joomla\CMS\Factory;
 use Joomla\CMS\Filesystem\File;
@@ -195,11 +196,11 @@ class Preview
 	 *
 	 * @since   1.0.0
 	 */
-	public function getResized(string $url, ?Date $lastModifiedDate): string
+	public function getResized(string $url, ?Date $lastModifiedDate, CMSApplicationInterface $app): string
 	{
 		if (!$this->lambdaResize && $this->cacheThumbnails)
 		{
-			return $this->getResizedLocalUrl($url, $lastModifiedDate);
+			return $this->getResizedLocalUrl($url, $lastModifiedDate, $app);
 		}
 
 		if (!$this->lambdaResize)
@@ -333,7 +334,7 @@ class Preview
 	 * @throws  \Exception
 	 * @since   1.0.2
 	 */
-	private function getResizedLocalUrl(string $url, ?Date $lastModifiedDate): string
+	private function getResizedLocalUrl(string $url, ?Date $lastModifiedDate, CMSApplicationInterface $app): string
 	{
 		// I need the last modified date.
 		if (!$lastModifiedDate instanceof Date)
@@ -383,7 +384,7 @@ class Preview
 		}
 
 		// If the temp directory doesn't exist or can't be written to: no can do.
-		$tempDir = Factory::getApplication()->get('tmp_path', sys_get_temp_dir());
+		$tempDir = $app->get('tmp_path', sys_get_temp_dir());
 
 		if (!@is_dir($tempDir) || !@is_writable($tempDir))
 		{

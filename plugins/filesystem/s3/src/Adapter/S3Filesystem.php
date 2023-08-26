@@ -10,6 +10,7 @@ namespace Joomla\Plugin\Filesystem\S3\Adapter;
 defined('_JEXEC') or die;
 
 use Exception;
+use Joomla\CMS\Application\CMSApplicationInterface;
 use Joomla\CMS\Cache\CacheController;
 use Joomla\CMS\Cache\CacheControllerFactoryInterface;
 use Joomla\CMS\Cache\Controller\CallbackController;
@@ -283,6 +284,11 @@ class S3Filesystem implements AdapterInterface
 	private $cacheSalt;
 
 	/**
+	 * @var CMSApplicationInterface
+	 */
+	private $application;
+
+	/**
 	 * Private constructor
 	 *
 	 * @param   array  $setup
@@ -290,8 +296,10 @@ class S3Filesystem implements AdapterInterface
 	 * @return  void
 	 * @since   1.0.0
 	 */
-	private function __construct(array $setup)
+	private function __construct(array $setup, CMSApplicationInterface $application)
 	{
+		$this->application = $application;
+		
 		foreach ($setup as $k => $v)
 		{
 			if (!property_exists($this, $k))
@@ -375,7 +383,7 @@ class S3Filesystem implements AdapterInterface
 	 *
 	 * @since   1.0.0
 	 */
-	public static function getFromConnection(array $connection): self
+	public static function getFromConnection(array $connection, CMSApplicationInterface $app): self
 	{
 		$type         = $connection['type'] ?? 's3';
 		$cdnUrl       = trim($connection['cdn_url'] ?? '');
@@ -401,7 +409,7 @@ class S3Filesystem implements AdapterInterface
 			'cacheLifetime'  => min(max(0, $connection['cache_time'] ?? 300), 31536000),
 		];
 
-		return new self($setup);
+		return new self($setup, $app);
 	}
 
 	/**
@@ -838,7 +846,7 @@ class S3Filesystem implements AdapterInterface
 	 */
 	public function getResource(string $path)
 	{
-		$tempPath          = Factory::getApplication()->get('tmp_path', sys_get_temp_dir());
+		$tempPath          = $this->application->get('tmp_path', sys_get_temp_dir());
 		$tempName          = tempnam($tempPath, 'jmes3_');
 		$this->tempFiles[] = $tempName;
 
@@ -1145,7 +1153,7 @@ class S3Filesystem implements AdapterInterface
 		 */
 		if (($type === 'file') && $this->preview->shouldPreview($obj->path, $this->isCloudFront))
 		{
-			$obj->thumb_path = $this->preview->getResized($this->getUrl($obj->path), $date ?? null);
+			$obj->thumb_path = $this->preview->getResized($this->getUrl($obj->path), $date ?? null, $this->application);
 		}
 
 		return $obj;
@@ -1232,7 +1240,7 @@ class S3Filesystem implements AdapterInterface
 			return $this->cacheController;
 		}
 
-		$app = Factory::getApplication();
+		$app = $this->application;
 
 		$options = [
 			'defaultgroup' => 'plg_filesystem_s3',
