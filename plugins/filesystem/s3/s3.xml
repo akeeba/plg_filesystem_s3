@@ -20,6 +20,7 @@
     <files>
         <folder>services</folder>
         <folder plugin="s3">src</folder>
+        <folder>vendor</folder>
     </files>
 
     <languages folder="language">

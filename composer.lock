@@ -4,8 +4,57 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "b767b9dc23bef41dbfac1e3b83f7df36",
-    "packages": [],
+    "content-hash": "52d9baada9843e12f582443521cf3afd",
+    "packages": [
+        {
+            "name": "akeeba/s3",
+            "version": "2.2.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/akeeba/s3.git",
+                "reference": "ab1baa7ce4bf0474d9194b3bd8148f047ae9c275"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/akeeba/s3/zipball/ab1baa7ce4bf0474d9194b3bd8148f047ae9c275",
+                "reference": "ab1baa7ce4bf0474d9194b3bd8148f047ae9c275",
+                "shasum": ""
+            },
+            "require": {
+                "ext-curl": "*",
+                "ext-simplexml": "*",
+                "php": ">=7.1.0 <8.4"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "Akeeba\\Engine\\Postproc\\Connector\\S3v4\\": "src"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "GPL-3.0-or-later"
+            ],
+            "authors": [
+                {
+                    "name": "Nicholas K. Dionysopoulos",
+                    "email": "nicholas_NO_SPAM_PLEASE@akeeba.com",
+                    "homepage": "http://www.dionysopoulos.me",
+                    "role": "Lead Developer"
+                }
+            ],
+            "description": "A compact, dependency-less Amazon S3 API client implementing the most commonly used features",
+            "homepage": "https://github.com/akeeba/s3",
+            "keywords": [
+                "s3"
+            ],
+            "support": {
+                "issues": "https://github.com/akeeba/s3/issues",
+                "source": "https://github.com/akeeba/s3/tree/2.2.2"
+            },
+            "time": "2023-08-08T13:20:44+00:00"
+        }
+    ],
     "packages-dev": [],
     "aliases": [],
     "minimum-stability": "stable",
@@ -16,5 +65,8 @@
         "php": "^7.2||^8.0"
     },
     "platform-dev": [],
-    "plugin-api-version": "2.1.0"
+    "platform-overrides": {
+        "php": "7.4.0"
+    },
+    "plugin-api-version": "2.3.0"
 }

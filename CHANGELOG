@@ -1,3 +1,8 @@
+Amazon S3 Filesystem for Joomla 1.1.0
+================================================================================
++ Joomla 5 support
+~ Using the S3 library through Composer, for easier updates
+
 Amazon S3 Filesystem for Joomla 1.0.2
 ================================================================================
 + Thumbnails caching on the local filesystem

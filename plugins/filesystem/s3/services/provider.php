@@ -30,6 +30,9 @@ return new class implements ServiceProviderInterface {
 		$container->set(
 			PluginInterface::class,
 			function (Container $container) {
+				defined('AKEEBAENGINE') || define('AKEEBAENGINE', 1);
+				require_once __DIR__ . '/../vendor/autoload.php';
+
 				$config  = (array) PluginHelper::getPlugin('filesystem', 's3');
 				$subject = $container->get(DispatcherInterface::class);
 
