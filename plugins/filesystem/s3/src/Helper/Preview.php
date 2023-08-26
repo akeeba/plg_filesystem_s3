@@ -5,7 +5,7 @@
  * @license   GPLv3 or later
  */
 
-namespace Joomla\Plugin\Filesystem\S3\Helper;
+namespace Akeeba\Plugin\Filesystem\S3\Helper;
 
 defined('_JEXEC') or die;
 

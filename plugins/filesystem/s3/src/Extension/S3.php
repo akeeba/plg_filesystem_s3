@@ -5,7 +5,7 @@
  * @license   GPLv3 or later
  */
 
-namespace Joomla\Plugin\Filesystem\S3\Extension;
+namespace Akeeba\Plugin\Filesystem\S3\Extension;
 
 defined('_JEXEC') or die;
 
@@ -15,8 +15,8 @@ use Joomla\Component\Media\Administrator\Adapter\AdapterInterface;
 use Joomla\Component\Media\Administrator\Event\MediaProviderEvent;
 use Joomla\Component\Media\Administrator\Provider\ProviderInterface;
 use Joomla\Event\SubscriberInterface;
-use Joomla\Plugin\Filesystem\S3\Adapter\S3Filesystem;
-use Joomla\Plugin\Filesystem\S3\Helper\Preview;
+use Akeeba\Plugin\Filesystem\S3\Adapter\S3Filesystem;
+use Akeeba\Plugin\Filesystem\S3\Helper\Preview;
 
 class S3 extends CMSPlugin implements SubscriberInterface, ProviderInterface
 {

@@ -5,7 +5,7 @@
  * @license   GPLv3 or later
  */
 
-namespace Joomla\Plugin\Filesystem\S3\Adapter;
+namespace Akeeba\Plugin\Filesystem\S3\Adapter;
 
 defined('_JEXEC') or die;
 
@@ -21,7 +21,7 @@ use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\Component\Media\Administrator\Adapter\AdapterInterface;
 use Joomla\Component\Media\Administrator\Exception\FileNotFoundException;
-use Joomla\Plugin\Filesystem\S3\Helper\Preview;
+use Akeeba\Plugin\Filesystem\S3\Helper\Preview;
 use Akeeba\Engine\Postproc\Connector\S3v4\Acl;
 use Akeeba\Engine\Postproc\Connector\S3v4\Configuration;
 use Akeeba\Engine\Postproc\Connector\S3v4\Connector;

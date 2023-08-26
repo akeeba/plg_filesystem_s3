@@ -15,7 +15,7 @@
     <creationDate>2023-03-09</creationDate>
     <version>1.0.2</version>
     <description>PLG_FILESYSTEM_S3_XML_DESCRIPTION</description>
-    <namespace path="src">Joomla\Plugin\Filesystem\S3</namespace>
+    <namespace path="src">Akeeba\Plugin\Filesystem\S3</namespace>
 
     <files>
         <folder>services</folder>
@@ -31,7 +31,7 @@
     <config>
         <fields name="params">
             <fieldset name="basic"
-                      addruleprefix="Joomla\Plugin\Filesystem\S3\Rule"
+                      addruleprefix="Akeeba\Plugin\Filesystem\S3\Rule"
             >
                 <field name="connections"
                        type="subform"
@@ -179,7 +179,7 @@
                                label="PLG_FILESYSTEM_S3_CONFIG_DIRECTORY_LABEL"
                                addonBefore="/"
                                default=""
-                               filter="Joomla\Plugin\Filesystem\S3\Filter::filterDirectory"
+                               filter="Akeeba\Plugin\Filesystem\S3\Filter::filterDirectory"
                         />
 
                         <field name="storage_class"
