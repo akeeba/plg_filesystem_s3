@@ -8,6 +8,7 @@
 \defined('_JEXEC') || die;
 
 use Joomla\CMS\Filesystem\Folder;
+use Joomla\CMS\Installer\Adapter\PluginAdapter;
 use Joomla\CMS\Installer\InstallerAdapter;
 use Joomla\CMS\Installer\InstallerScript;
 
@@ -21,6 +22,59 @@ class plgFilesystemS3InstallerScript extends InstallerScript
 		if (Folder::exists($mediaFolder))
 		{
 			Folder::delete($mediaFolder);
+		}
+
+		return true;
+	}
+
+	/**
+	 * @param   string         $type
+	 * @param   PluginAdapter  $adapter
+	 *
+	 *
+	 * @since version
+	 */
+	public function postflight($type, $adapter)
+	{
+		if ($type === 'uninstall')
+		{
+			return true;
+		}
+
+		if (class_exists(JNamespacePsr4Map::class))
+		{
+			try
+			{
+				$nsMap = new JNamespacePsr4Map();
+
+				@clearstatcache(JPATH_CACHE . '/autoload_psr4.php');
+
+				if (function_exists('opcache_invalidate'))
+				{
+					@opcache_invalidate(JPATH_CACHE . '/autoload_psr4.php');
+				}
+
+				@clearstatcache(JPATH_CACHE . '/autoload_psr4.php');
+				$nsMap->create();
+
+				if (function_exists('opcache_invalidate'))
+				{
+					@opcache_invalidate(JPATH_CACHE . '/autoload_psr4.php');
+				}
+
+				$nsMap->load();
+			}
+			catch (\Throwable $e)
+			{
+				// In case of failure, just try to delete the old autoload_psr4.php file
+				if (function_exists('opcache_invalidate'))
+				{
+					@opcache_invalidate(JPATH_CACHE . '/autoload_psr4.php');
+				}
+
+				@unlink(JPATH_CACHE . '/autoload_psr4.php');
+				@clearstatcache(JPATH_CACHE . '/autoload_psr4.php');
+			}
 		}
 
 		return true;
