@@ -11,7 +11,7 @@
         </downloads>
         <infourl title="Release Notes">https://github.com/akeeba/plg_filesystem_s3/releases/download/1.1.0</infourl>
 
-        <targetplatform name="joomla" version="4.[012]"/>
+        <targetplatform name="joomla" version="4.[01234]|5.0"/>
 
         <php_minimum>7.2.0</php_minimum>
 
