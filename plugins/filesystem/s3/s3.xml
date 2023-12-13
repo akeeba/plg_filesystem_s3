@@ -138,22 +138,29 @@
                             <option value="af-south-1">PLG_FILESYSTEM_S3_CONFIG_REGION_AF_SOUTH_1</option>
                             <option value="ap-east-1">PLG_FILESYSTEM_S3_CONFIG_REGION_AP_EAST_1</option>
                             <option value="ap-south-1">PLG_FILESYSTEM_S3_CONFIG_REGION_AP_SOUTH_1</option>
+                            <option value="ap-south-2">PLG_FILESYSTEM_S3_CONFIG_REGION_AP_SOUTH_2</option>
                             <option value="ap-northeast-1">PLG_FILESYSTEM_S3_CONFIG_REGION_AP_NORTHEAST_1</option>
                             <option value="ap-northeast-2">PLG_FILESYSTEM_S3_CONFIG_REGION_AP_NORTHEAST_2</option>
                             <option value="ap-northeast-3">PLG_FILESYSTEM_S3_CONFIG_REGION_AP_NORTHEAST_3</option>
                             <option value="ap-southeast-1">PLG_FILESYSTEM_S3_CONFIG_REGION_AP_SOUTHEAST_1</option>
                             <option value="ap-southeast-2">PLG_FILESYSTEM_S3_CONFIG_REGION_AP_SOUTHEAST_2</option>
+                            <option value="ap-southeast-3">PLG_FILESYSTEM_S3_CONFIG_REGION_AP_SOUTHEAST_3</option>
+                            <option value="ap-southeast-4">PLG_FILESYSTEM_S3_CONFIG_REGION_AP_SOUTHEAST_4</option>
                             <option value="ca-central-1">PLG_FILESYSTEM_S3_CONFIG_REGION_CA_CENTRAL_1</option>
                             <option value="cn-north-1">PLG_FILESYSTEM_S3_CONFIG_REGION_CN_NORTH_1</option>
                             <option value="cn-northwest-1">PLG_FILESYSTEM_S3_CONFIG_REGION_CN_NORTHWEST_1</option>
                             <option value="eu-central-1">PLG_FILESYSTEM_S3_CONFIG_REGION_EU_CENTRAL_1</option>
+                            <option value="eu-central-2">PLG_FILESYSTEM_S3_CONFIG_REGION_EU_CENTRAL_2</option>
                             <option value="eu-west-1">PLG_FILESYSTEM_S3_CONFIG_REGION_EU_WEST_1</option>
                             <option value="eu-west-2">PLG_FILESYSTEM_S3_CONFIG_REGION_EU_WEST_2</option>
                             <option value="eu-west-3">PLG_FILESYSTEM_S3_CONFIG_REGION_EU_WEST_3</option>
                             <option value="eu-south-1">PLG_FILESYSTEM_S3_CONFIG_REGION_EU_SOUTH_1</option>
+                            <option value="eu-south-2">PLG_FILESYSTEM_S3_CONFIG_REGION_EU_SOUTH_2</option>
                             <option value="eu-north-1">PLG_FILESYSTEM_S3_CONFIG_REGION_EU_NORTH_1</option>
                             <option value="sa-east-1">PLG_FILESYSTEM_S3_CONFIG_REGION_SA_EAST_1</option>
+                            <option value="me-central-1">PLG_FILESYSTEM_S3_CONFIG_REGION_ME_CENTRAL_1</option>
                             <option value="me-south-1">PLG_FILESYSTEM_S3_CONFIG_REGION_ME_SOUTH_1</option>
+                            <option value="il-central-1">PLG_FILESYSTEM_S3_CONFIG_REGION_IL_CENTRAL_1</option>
                             <option value="custom">PLG_FILESYSTEM_S3_CONFIG_REGION_CUSTOM</option>
                         </field>
 
