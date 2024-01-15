@@ -18,8 +18,8 @@
       <path value="$PROJECT_DIR$/vendor/composer" />
       <path value="$PROJECT_DIR$/../../master/joomla4" />
       <path value="/var/www/boot4/configuration.php" />
-      <path value="$PROJECT_DIR$/plugins/filesystem/s3/vendor/composer" />
       <path value="$PROJECT_DIR$/plugins/filesystem/s3/vendor/akeeba/s3" />
+      <path value="$PROJECT_DIR$/plugins/filesystem/s3/vendor/composer" />
     </include_path>
   </component>
   <component name="PhpProjectSharedConfiguration" php_language_level="7.2" />
