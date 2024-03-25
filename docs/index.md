@@ -20,6 +20,8 @@ This plugin and this documentation is written on the assumption that the user is
 
 We also assume that the user has read our [caveats](caveats.md) page which explains some less–than–obvious requirements and side-effects.
 
+**⚠️ ATTENTION!** Some third party, S3-compatible services need [special configuration](3pd-config.md).
+
 ## Installation
 
 [Download](https://github.com/akeeba/plg_filesystem_s3/releases) and install the latest version of the plugin.
@@ -83,4 +85,4 @@ Previews require transferring all files under a folder from S3 / CloudFront to y
 
 **Use Lambda@Edge resize**. You can have Amazon CloudFront automatically resize images into thumbnails for more efficiently displaying folder listings [using Amazon Lambda@Edge](https://aws.amazon.com/blogs/networking-and-content-delivery/resizing-images-with-amazon-cloudfront-lambdaedge-aws-cdn-blog/). The thumbnails are stored in the same S3 bucket as the original images. This is for expert, hardcore users only. We cannot help you set up Lambda@Edge for your CloudFront distribution.
 
-**Resize dimension (px)**. The thumbnail dimensions when the **Use Lambda@Edge resize** option is enabled. This is in pixels. Using a setting of 100 will create thumbnails up to 100x100 pixels in size; that's the perfect size for Media Manager thumbnails on regular pixel density (96ppi) monitors. If you have a HiDPI monitor set this higher; 200 is great for 192ppi (2x, original Apple Retina) displays, 300 is great for 288ppi (3x) displays, 400 is great for 384ppi (4x) displays. In most cases 200 is fine for use with HiDPI laptops and monitors. Denser displays tend to be mobile phones and tablets where the larger transfer size that comes with sharper images quickly brings you into the realm of the law of diminishing returns (too much memory used, too much data used, slow scrolling, bad experience all around). 
+**Resize dimension (px)**. The thumbnail dimensions when the **Use Lambda@Edge resize** option is enabled. This is in pixels. Using a setting of 100 will create thumbnails up to 100x100 pixels in size; that's the perfect size for Media Manager thumbnails on regular pixel density (96ppi) monitors. If you have a HiDPI monitor set this higher; 200 is great for 192ppi (2x, original Apple Retina) displays, 300 is great for 288ppi (3x) displays, 400 is great for 384ppi (4x) displays. In most cases 200 is fine for use with HiDPI laptops and monitors. Denser displays tend to be mobile phones and tablets where the larger transfer size that comes with sharper images quickly brings you into the realm of the law of diminishing returns (too much memory used, too much data used, slow scrolling, bad experience all around).
