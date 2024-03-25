@@ -59,12 +59,13 @@
                         </field>
 
                         <field name="customendpoint"
-                               type="url"
+                               type="text"
                                label="PLG_FILESYSTEM_S3_CONFIG_CUSTOMENDPOINT_LABEL"
+                               description="PLG_FILESYSTEM_S3_CONFIG_CUSTOMENDPOINT_DESC"
                                default=""
                                showon="type:custom"
-                               filter="url"
-                               validate="url"
+                               X_filter="url"
+                               X_validate="url"
                         />
 
                         <field name="accesskey"
@@ -206,6 +207,30 @@
                             <option value="GLACIER">PLG_FILESYSTEM_S3_CONFIG_STORAGE_CLASS_GLACIER</option>
                             <option value="DEEP_ARCHIVE">PLG_FILESYSTEM_S3_CONFIG_STORAGE_CLASS_DEEP_ARCHIVE</option>
                             -->
+                        </field>
+
+                        <field name="useHTTPDateHeader"
+                               type="radio"
+                               layout="joomla.form.field.radio.switcher"
+                               label="PLG_FILESYSTEM_S3_CONFIG_USEHTTPDATEHEADER_LABEL"
+                               description="PLG_FILESYSTEM_S3_CONFIG_USEHTTPDATEHEADER_DESC"
+                               default="0"
+                               showon="type:custom"
+                        >
+                            <option value="0">JNO</option>
+                            <option value="1">JYES</option>
+                        </field>
+
+                        <field name="preSignedBucketInURL"
+                               type="radio"
+                               layout="joomla.form.field.radio.switcher"
+                               label="PLG_FILESYSTEM_S3_CONFIG_PRESIGNEDBUCKETINURL_LABEL"
+                               description="PLG_FILESYSTEM_S3_CONFIG_PRESIGNEDBUCKETINURL_DESC"
+                               default="0"
+                               showon="type:custom"
+                        >
+                            <option value="0">JNO</option>
+                            <option value="1">JYES</option>
                         </field>
 
                         <field name="caching"

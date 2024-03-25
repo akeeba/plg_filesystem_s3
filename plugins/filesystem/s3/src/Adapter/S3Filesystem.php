@@ -9,6 +9,13 @@ namespace Akeeba\Plugin\Filesystem\S3\Adapter;
 
 defined('_JEXEC') or die;
 
+use Akeeba\S3\Acl;
+use Akeeba\S3\Configuration;
+use Akeeba\S3\Connector;
+use Akeeba\S3\Input;
+use Akeeba\S3\Request;
+use Akeeba\S3\Response\Error;
+use Akeeba\S3\StorageClass;
 use Exception;
 use Joomla\CMS\Application\CMSApplicationInterface;
 use Joomla\CMS\Cache\CacheController;
@@ -22,15 +29,8 @@ use Joomla\CMS\Language\Text;
 use Joomla\Component\Media\Administrator\Adapter\AdapterInterface;
 use Joomla\Component\Media\Administrator\Exception\FileNotFoundException;
 use Akeeba\Plugin\Filesystem\S3\Helper\Preview;
-use Akeeba\Engine\Postproc\Connector\S3v4\Acl;
-use Akeeba\Engine\Postproc\Connector\S3v4\Configuration;
-use Akeeba\Engine\Postproc\Connector\S3v4\Connector;
 use Akeeba\S3\Exception\CannotGetFile;
 use Akeeba\S3\Exception\CannotPutFile;
-use Akeeba\Engine\Postproc\Connector\S3v4\Input;
-use Akeeba\Engine\Postproc\Connector\S3v4\Request;
-use Akeeba\Engine\Postproc\Connector\S3v4\Response\Error;
-use Akeeba\Engine\Postproc\Connector\S3v4\StorageClass;
 use RuntimeException;
 use stdClass;
 
@@ -288,6 +288,10 @@ class S3Filesystem implements AdapterInterface
 	 */
 	private $application;
 
+	private $useHTTPDateHeader = false;
+
+	private $preSignedBucketInURL = false;
+
 	/**
 	 * Private constructor
 	 *
@@ -364,6 +368,10 @@ class S3Filesystem implements AdapterInterface
 		// Set path-style vs virtual hosting style access
 		$configuration->setUseLegacyPathStyle($this->isPathAccess);
 
+		$configuration->setUseHTTPDateHeader($this->useHTTPDateHeader);
+
+		$configuration->setPreSignedBucketInURL($this->preSignedBucketInURL);
+
 		// Return the new S3 client instance
 		$this->connector = new Connector($configuration);
 
@@ -392,21 +400,23 @@ class S3Filesystem implements AdapterInterface
 		$region       = $connection['region'] ?? 'us-east-1';
 		$customRegion = $connection['$region'] ?? '';
 		$setup        = [
-			'accessKey'      => $connection['accesskey'] ?? '',
-			'bucket'         => $connection['bucket'] ?? '',
-			'cdnUrl'         => $isCloudFront ? ($cdnUrl) : null,
-			'customEndpoint' => $type === 'custom' ? $connection['customendpoint'] : null,
-			'directory'      => $connection['directory'] ?? '',
-			'dualStack'      => ($connection['dualstack'] ?? '1') === '1',
-			'isCloudFront'   => $isCloudFront,
-			'isPathAccess'   => ($connection['pathaccess'] ?? '') === 'path',
-			'name'           => $connection['label'] ?? null,
-			'region'         => $region === 'custom' ? $customRegion : $region,
-			'secretKey'      => $connection['secretkey'] ?? '',
-			'signature'      => in_array($signature, ['v2', 'v4']) ? $signature : 'v4',
-			'storageClass'   => $connection['storage_class'] ?? 'STANDARD',
-			'cachingEnabled' => ($connection['caching'] ?? 0) == 1,
-			'cacheLifetime'  => min(max(0, $connection['cache_time'] ?? 300), 31536000),
+			'accessKey'            => $connection['accesskey'] ?? '',
+			'bucket'               => $connection['bucket'] ?? '',
+			'cdnUrl'               => $isCloudFront ? ($cdnUrl) : null,
+			'customEndpoint'       => $type === 'custom' ? $connection['customendpoint'] : null,
+			'directory'            => $connection['directory'] ?? '',
+			'dualStack'            => ($connection['dualstack'] ?? '1') === '1',
+			'isCloudFront'         => $isCloudFront,
+			'isPathAccess'         => ($connection['pathaccess'] ?? '') === 'path',
+			'name'                 => $connection['label'] ?? null,
+			'region'               => $region === 'custom' ? $customRegion : $region,
+			'secretKey'            => $connection['secretkey'] ?? '',
+			'signature'            => in_array($signature, ['v2', 'v4']) ? $signature : 'v4',
+			'storageClass'         => $connection['storage_class'] ?? 'STANDARD',
+			'cachingEnabled'       => ($connection['caching'] ?? 0) == 1,
+			'cacheLifetime'        => min(max(0, $connection['cache_time'] ?? 300), 31536000),
+			'useHTTPDateHeader'    => $type === 's3' ? 0 : ($connection['useHTTPDateHeader'] ?? 0),
+			'preSignedBucketInURL' => $type === 's3' ? 0 : ($connection['preSignedBucketInURL'] ?? 0),
 		];
 
 		return new self($setup, $app);
