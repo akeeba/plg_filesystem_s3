@@ -73,7 +73,6 @@
                                default=""
                                required="true"
                                length="50"
-                               validate="AccessKey"
                         />
 
                         <field name="secretkey"
@@ -82,7 +81,6 @@
                                default=""
                                required="true"
                                length="128"
-                               validate="SecretKey"
                         />
 
                         <field name="cdn_url"

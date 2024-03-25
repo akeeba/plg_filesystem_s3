@@ -1,6 +1,7 @@
 Amazon S3 Filesystem for Joomla 1.1.1
 ================================================================================
 # [MEDIUM] Can't use files with spaces or some special characters in their name
+# [LOW] Cannot save third party S3-compatible services' non-compliant access / secret keys
 
 Amazon S3 Filesystem for Joomla 1.1.0
 ================================================================================
