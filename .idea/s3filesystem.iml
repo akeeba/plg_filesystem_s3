@@ -2,8 +2,10 @@
 <module type="WEB_MODULE" version="4">
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/tests" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/plugins/filesystem/s3/vendor/akeeba/s3" />
       <excludeFolder url="file://$MODULE_DIR$/plugins/filesystem/s3/vendor/composer" />
+      <excludeFolder url="file://$MODULE_DIR$/plugins/filesystem/s3/vendor/league/mime-type-detection" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

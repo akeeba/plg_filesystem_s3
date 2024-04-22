@@ -31,8 +31,10 @@ use Joomla\Component\Media\Administrator\Exception\FileNotFoundException;
 use Akeeba\Plugin\Filesystem\S3\Helper\Preview;
 use Akeeba\S3\Exception\CannotGetFile;
 use Akeeba\S3\Exception\CannotPutFile;
+use League\MimeTypeDetection\FinfoMimeTypeDetector;
 use RuntimeException;
 use stdClass;
+use Throwable;
 
 class S3Filesystem implements AdapterInterface
 {
@@ -503,9 +505,47 @@ class S3Filesystem implements AdapterInterface
 		$input = new Input();
 		$input->assignData($data);
 
+		try
+		{
+			$detector = new FinfoMimeTypeDetector();
+		}
+		catch (Throwable $e)
+		{
+			$detector = null;
+		}
+
 		$endpoint                       = $this->connector->getConfiguration()->getEndpoint();
 		$headers                        = $this->getStorageTypeHeaders($this->storageClass, $endpoint);
 		$headers['Content-Disposition'] = sprintf('attachment; filename="%s"', basename($name));
+
+		// TODO Set up Content-Type
+		if ($detector !== null)
+		{
+			$mimeType = null;
+
+			try
+			{
+				$mimeType = $detector->detectMimeTypeFromBuffer($data);
+			}
+			catch (Throwable $e)
+			{
+				$mimeType = null;
+			}
+
+			try
+			{
+				$mimeType = $mimeType ?? $detector->detectMimeTypeFromPath($name);
+			}
+			catch (Throwable $e)
+			{
+				$mimeType = null;
+			}
+
+			if ($mimeType !== null)
+			{
+				$headers['Content-Type'] = $mimeType;
+			}
+		}
 
 		$name      = $this->makeSafeName($name);
 		$path      = trim($path, '/');

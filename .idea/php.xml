@@ -20,11 +20,17 @@
       <path value="/var/www/boot4/configuration.php" />
       <path value="$PROJECT_DIR$/plugins/filesystem/s3/vendor/akeeba/s3" />
       <path value="$PROJECT_DIR$/plugins/filesystem/s3/vendor/composer" />
+      <path value="$PROJECT_DIR$/plugins/filesystem/s3/vendor/league/mime-type-detection" />
     </include_path>
   </component>
   <component name="PhpProjectSharedConfiguration" php_language_level="7.2" />
   <component name="PhpStanOptionsConfiguration">
     <option name="transferred" value="true" />
+  </component>
+  <component name="PhpUnit">
+    <phpunit_settings>
+      <PhpUnitSettings custom_loader_path="$PROJECT_DIR$/plugins/filesystem/s3/vendor/autoload.php" />
+    </phpunit_settings>
   </component>
   <component name="PsalmOptionsConfiguration">
     <option name="transferred" value="true" />
