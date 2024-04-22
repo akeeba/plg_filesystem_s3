@@ -342,8 +342,13 @@ class Preview
 			return $url;
 		}
 
+		// Remove the signature when calculating the URL for hashing and when extracting the extension
+		$urlForHash = strpos($url, '?') === false
+			? $url
+			: explode('?', $url)[0];
+
 		// Make sure it's a supported file extension
-		$parts     = explode('.', $url);
+		$parts     = explode('.', $urlForHash);
 		$extension = strtolower(array_pop($parts));
 
 		if (!in_array($extension, ['gif', 'jpg', 'jpeg', 'png', 'webp']))
@@ -352,7 +357,7 @@ class Preview
 		}
 
 		// Get the local filename
-		$localHash      = md5($url . '::' . $lastModifiedDate->toRFC822());
+		$localHash      = md5($urlForHash . '::' . $lastModifiedDate->toRFC822());
 		$localBaseName  = $localHash . '.webp';
 		$localDirToRoot = 'media/plg_filesystem_s3/cache/' . $this->distributeToSubdirectories($localHash);
 		$localPathName  = JPATH_ROOT . '/' . $localDirToRoot . '/' . $localBaseName;
