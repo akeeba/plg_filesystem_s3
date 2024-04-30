@@ -33,6 +33,43 @@ Your configuration in the plugin must be as follows:
 * Signature method: V2 (Legacy)
 * Bucket access: Path Access (legacy)
 * Directory: as per the main documentation
-* Storage Class: Standard
+* Storage Class: Standard (recommended)
 * Use HTTP Date header instead of X-Amz-Date header: Yes
+* Force bucket name in pre-signed URL: No
+
+## CloudFlare R2
+
+Known caveats:
+* The endpoint domain name is given as a URL in CloudFlare's interface; you need to adjust it.
+* It only supports v4 signatures.
+* The Region is only indirectly visible in the CloudFlare interface.
+
+To get the necessary Access Key and Secret Key go to R2, Overview, Manage R2 Tokens and click on Create API Token. You need the Access and Secret shown further down the page, _not_ the "value" shown at the top.
+
+To get the Region and endpoint, you need to go to R2, Overview, and click on your bucket's name, then click on the Settings tab. You will see a line similar to this:
+```text
+**Location:** Eastern Europe (EEUR)
+```
+The stuff between the parantheses is the region, BUT you have to make it lowercase. In our example above, the Region would be `eeur`.
+
+A bit further below that you will see a line like this:
+```text
+**S3 API:** https://0123456789abdef0123456789abdef.r2.cloudflarestorage.com/something
+```
+Remove the `https://` prefix and the `/something` (where `something` is your bucket's name) from the URL to get your Custom Endpoint. In this example, it would be `0123456789abdef0123456789abdef.r2.cloudflarestorage.com`.
+
+Your configuration in the plugin must be as follows:
+
+* Connection type: Custom S3-compatible storage provider
+* Custom endpoint: see above
+* Access key: see above
+* Secret key: see above
+* Bucket: your bucket's name
+* Signature method: V4
+* Region: `(custom)`
+* Custom Region: see above
+* Bucket access: Virtual Hosting (recommended)
+* Directory: as per the main documentation
+* Storage Class: Standard (recommended)
+* Use HTTP Date header instead of X-Amz-Date header: No
 * Force bucket name in pre-signed URL: No
