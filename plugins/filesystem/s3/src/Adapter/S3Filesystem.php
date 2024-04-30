@@ -359,13 +359,15 @@ class S3Filesystem implements AdapterInterface
 
 		// Prepare the configuration
 		$configuration = new Configuration($this->accessKey, $this->secretKey, $this->signature, $this->region);
-		$configuration->setSSL($useSSL ?? true);
-		$configuration->setUseDualstackUrl($this->dualStack);
 
 		if ($customEndpoint)
 		{
 			$configuration->setEndpoint($customEndpoint);
 		}
+
+		$configuration->setSignatureMethod($this->signature);
+		$configuration->setSSL($useSSL ?? true);
+		$configuration->setUseDualstackUrl($this->dualStack);
 
 		// Set path-style vs virtual hosting style access
 		$configuration->setUseLegacyPathStyle($this->isPathAccess);
@@ -411,14 +413,14 @@ class S3Filesystem implements AdapterInterface
 			'isCloudFront'         => $isCloudFront,
 			'isPathAccess'         => ($connection['pathaccess'] ?? '') === 'path',
 			'name'                 => $connection['label'] ?? null,
-			'region'               => $region === 'custom' ? $customRegion : $region,
+			'region'               => $region === '' ? $customRegion : $region,
 			'secretKey'            => $connection['secretkey'] ?? '',
 			'signature'            => in_array($signature, ['v2', 'v4']) ? $signature : 'v4',
 			'storageClass'         => $connection['storage_class'] ?? 'STANDARD',
 			'cachingEnabled'       => ($connection['caching'] ?? 0) == 1,
 			'cacheLifetime'        => min(max(0, $connection['cache_time'] ?? 300), 31536000),
-			'useHTTPDateHeader'    => $type === 's3' ? 0 : ($connection['useHTTPDateHeader'] ?? 0),
-			'preSignedBucketInURL' => $type === 's3' ? 0 : ($connection['preSignedBucketInURL'] ?? 0),
+			'useHTTPDateHeader'    => $type === 's3' ? 0 : boolval($connection['useHTTPDateHeader'] ?? 0),
+			'preSignedBucketInURL' => $type === 's3' ? 0 : boolval($connection['preSignedBucketInURL'] ?? 0),
 		];
 
 		return new self($setup, $app);
