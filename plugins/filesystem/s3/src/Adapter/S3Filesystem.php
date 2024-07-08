@@ -383,7 +383,7 @@ class S3Filesystem implements AdapterInterface
 		$this->cachingEnabled = $this->cachingEnabled && ($this->cacheLifetime > 0) && true;
 
 		// Set up the hashing salt for the callback cache controller
-		$this->cacheSalt = md5(serialize($setup ?? []));
+		$this->cacheSalt = hash('md5', serialize($setup ?? []));
 	}
 
 	/**
@@ -1326,7 +1326,7 @@ class S3Filesystem implements AdapterInterface
 	{
 		$path = trim($path, '/') ?: '/';
 
-		return md5('plg_filesystem_s3:' . $this->cacheSalt . ':' . trim($path, '/') . ':' . strtolower($operation));
+		return hash('md5', 'plg_filesystem_s3:' . $this->cacheSalt . ':' . trim($path, '/') . ':' . strtolower($operation));
 	}
 
 	/**

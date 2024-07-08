@@ -357,7 +357,7 @@ class Preview
 		}
 
 		// Get the local filename
-		$localHash      = md5($urlForHash . '::' . $lastModifiedDate->toRFC822());
+		$localHash      = hash('md5', $urlForHash . '::' . $lastModifiedDate->toRFC822());
 		$localBaseName  = $localHash . '.webp';
 		$localDirToRoot = 'media/plg_filesystem_s3/cache/' . $this->distributeToSubdirectories($localHash);
 		$localPathName  = JPATH_ROOT . '/' . $localDirToRoot . '/' . $localBaseName;

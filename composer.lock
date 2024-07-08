@@ -12,12 +12,12 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/akeeba/s3.git",
-                "reference": "452fbd3084f1cb581851a1602226224d29d586d4"
+                "reference": "5adab2c5539ad6cd51d540717e74f3626821009b"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/akeeba/s3/zipball/452fbd3084f1cb581851a1602226224d29d586d4",
-                "reference": "452fbd3084f1cb581851a1602226224d29d586d4",
+                "url": "https://api.github.com/repos/akeeba/s3/zipball/5adab2c5539ad6cd51d540717e74f3626821009b",
+                "reference": "5adab2c5539ad6cd51d540717e74f3626821009b",
                 "shasum": ""
             },
             "require": {
@@ -54,9 +54,9 @@
             ],
             "support": {
                 "issues": "https://github.com/akeeba/s3/issues",
-                "source": "https://github.com/akeeba/s3/tree/2.3.2"
+                "source": "https://github.com/akeeba/s3/tree/development"
             },
-            "time": "2024-02-19T10:08:06+00:00"
+            "time": "2024-07-08T16:50:46+00:00"
         },
         {
             "name": "league/mime-type-detection",
