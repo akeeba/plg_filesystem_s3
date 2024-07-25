@@ -6,7 +6,7 @@
   -->
 
 <project name="PlgFilesystemS3" description="Amazon S3 Filesystem for Joomla" default="git" >
-	<import file="${phing.dir}/../../buildfiles/phing/common.xml" />
+	<import file="${phing.dir}/../buildfiles/phing/common.xml" />
 
 	<!--
 	====================================================================================================
@@ -28,26 +28,6 @@
 			</fileset>
 		</zipme>
 	</target>
-
-	<!--
-	====================================================================================================
-	Tasks - Documentation
-	====================================================================================================
-	-->
-
-	<target name="documentation" description="The documentation">
-		<echo message="No documentation in DocBook format." />
-	</target>
-
-	<target name="docsdeploy">
-		<echo message="No documentation in DocBook format." />
-	</target>
-
-	<!--
-	====================================================================================================
-	Tasks - Project management
-	====================================================================================================
-	-->
 
 	<target name="release" depends="github-release">
 		<!-- Dependencies are enough -->
