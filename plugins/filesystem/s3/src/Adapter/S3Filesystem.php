@@ -577,8 +577,8 @@ class S3Filesystem implements AdapterInterface
 	 */
 	public function createFolder(string $name, string $path): string
 	{
-		// Amazon S3 does not have folders. Creating an empty key whose name ends in "/" works as an empty folder.
-		$dummy = '';
+		// Amazon S3 does not have folders. Creating a one byte key whose name ends in "/" works as an empty folder.
+		$dummy = '.';
 		$input = Input::createFromData($dummy);
 
 		$name      = $this->makeSafeName($name);

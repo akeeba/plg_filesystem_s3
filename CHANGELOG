@@ -1,6 +1,7 @@
 Amazon S3 Filesystem for Joomla 1.1.3
 ================================================================================
 ~ PHP 8.4 compatibility: MD5 and SHA-1 functions are deprecated
+# [MEDIUM] Amazon S3 no longer allows creating 0-byte files as pseudo-folder entries
 
 Amazon S3 Filesystem for Joomla 1.1.2
 ================================================================================
