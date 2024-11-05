@@ -5,4 +5,4 @@ Integrate Amazon S3, CloudFront and Amazon S3–compatible storage with Joomla!'
 
 #### Changelog
 
-* 🐞 Cannot set up an S3-compatible storage service using v4 signatures
+* 🐞 Amazon S3 no longer allows creating 0-byte files as pseudo-folder entries
