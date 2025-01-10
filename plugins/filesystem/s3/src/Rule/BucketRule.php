@@ -35,6 +35,7 @@ class BucketRule extends FormRule
 	 * @param   Form               $form     The form object for which the field is being tested.
 	 *
 	 * @return  boolean  True if the value is valid, false otherwise.
+	 * @link    https://docs.aws.amazon.com/AmazonS3/latest/userguide/bucketnamingrules.html
 	 *
 	 * @since   1.0.0
 	 */
@@ -48,29 +49,86 @@ class BucketRule extends FormRule
 			return false;
 		}
 
-		// Bucket names must not start with the prefix xn--
-		if ($length > 4 && substr($value, 0, 4) === 'xn--')
+		/**
+		 * - Bucket names can consist only of lowercase letters, numbers, dots (.), and hyphens (-).
+		 * - Recommendation: Avoid using dots (.) in bucket names
+		 *
+		 * Therefore: Bucket names can consist only of lowercase letters, numbers, and hyphens (-).
+		 */
+		if (!preg_match('#^[a-z0-9-]+$#', $value))
 		{
 			return false;
 		}
 
-		// Bucket names must not end with the suffix -s3alias.
-		if ($length > 8 && substr($value, -8) === '-s3alias')
+		// Bucket names must begin and end with a letter or number.
+		if (!preg_match('#^[a-z0-9].*[a-z0-9]$#', $value))
 		{
 			return false;
 		}
 
 		/**
-		 * Validate the following:
-		 * - Bucket names can consist only of lowercase letters, numbers, dots, and hyphens (-).
-		 * - For best compatibility, we recommend that you avoid using dots (.) in bucket names
-		 * - Bucket names must begin and end with a letter or number.
-		 * - Bucket names must not be formatted as an IP address (for example, 192.168.5.4)
+		 * ⚠️ NO-OP for these rules
+		 *
+		 * 1. Bucket names must not contain two adjacent periods
+		 *
+		 * Reasoning: We do not allow dots.
+		 *
+		 * 2. Bucket names must not be formatted as an IP address (for example, 192.168.5.4).
+		 *
+		 * Reasoning: We do not allow dots.
 		 */
-		if (!preg_match('#(^[a-z]{1,2}$)|^([a-z][a-z0-9\-]{1,}[a-z])$#', $value))
+
+		/**
+		 * - Bucket names must not start with the prefix xn--.
+		 * - Bucket names must not start with the prefix sthree-.
+		 * - Bucket names must not start with the prefix sthree-configurator.
+		 * - Bucket names must not start with the prefix amzn-s3-demo-.
+		 */
+		$forbiddenPrefixes = ['xn--', 'sthree-', 'sthree-configurator', 'amzn-s3-demo-'];
+
+		foreach ($forbiddenPrefixes as $prefix)
 		{
-			return false;
+			if (
+				strlen($value) > strlen($prefix)
+				&& substr($value, 0, strlen($prefix)) === $prefix)
+			{
+				return false;
+			}
 		}
+
+		/**
+		 * - Bucket names must not end with the suffix -s3alias. This suffix is reserved for access point alias names. For more information, see Using a bucket-style alias for your S3 bucket access point.
+		 * - Bucket names must not end with the suffix --ol-s3. This suffix is reserved for Object Lambda Access Point alias names. For more information, see How to use a bucket-style alias for your S3 bucket Object Lambda Access Point.
+		 * - Bucket names must not end with the suffix .mrap. This suffix is reserved for Multi-Region Access Point names. For more information, see Rules for naming Amazon S3 Multi-Region Access Points.
+		 * - Bucket names must not end with the suffix --x-s3. This suffix is reserved for directory buckets. For more information, see Directory bucket naming rules.
+		 */
+		$forbiddenSuffix = ['-s3alias', '--ol-s3', '.mrap', '--x-s3'];
+
+		foreach ($forbiddenSuffix as $suffix)
+		{
+			if (
+				strlen($value) > strlen($suffix)
+				&& substr($value, -strlen($suffix)) === $suffix)
+			{
+				return false;
+			}
+		}
+
+		/**
+		 * ⚠️ NO-OP for these rules
+		 *
+		 * 1. Bucket names must be unique across all AWS accounts in all the AWS Regions within a partition.
+		 *
+		 * Reasoning: This is ensured by AWS on bucket creation. Setting up our software postdates bucket creation.
+		 *
+		 * 2. A bucket name cannot be used by another AWS account in the same partition until the bucket is deleted.
+		 *
+		 * Reasoning: This is ensured by AWS on bucket creation. Setting up our software postdates bucket creation.
+		 *
+		 * 3. Buckets used with Amazon S3 Transfer Acceleration can't have dots (.) in their names.
+		 *
+		 * Reasoning: a. Irrelevant to our use case; and b. We already don't allow dots in bucket names.
+		 */
 
 		return true;
 	}
