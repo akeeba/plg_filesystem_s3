@@ -5,4 +5,4 @@ Integrate Amazon S3, CloudFront and Amazon S3–compatible storage with Joomla!'
 
 #### Changelog
 
-* 🐞 Amazon S3 no longer allows creating 0-byte files as pseudo-folder entries
+* 📝 Rewritten bucket validation rule, taking into account Amazon's latest recommendations (January 2025)
