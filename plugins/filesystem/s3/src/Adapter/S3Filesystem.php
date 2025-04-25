@@ -292,6 +292,8 @@ class S3Filesystem implements AdapterInterface
 
 	private $acl = Acl::ACL_PRIVATE;
 
+	private $signedFor = 3600;
+
 	private $useHTTPDateHeader = false;
 
 	private $preSignedBucketInURL = false;
@@ -411,6 +413,7 @@ class S3Filesystem implements AdapterInterface
 		$region       = $connection['region'] ?? 'us-east-1';
 		$customRegion = $connection['$region'] ?? '';
 		$setup        = [
+			'signedFor'            => min(max(60, $connection['signed_for'] ?? 3600), 7 * 86400),
 			'accessKey'            => $connection['accesskey'] ?? '',
 			'bucket'               => $connection['bucket'] ?? '',
 			'cdnUrl'               => $isCDN ? ($cdnUrl) : null,
@@ -938,7 +941,7 @@ class S3Filesystem implements AdapterInterface
 		$dirPrefix = $this->directory . (empty($this->directory) ? '' : '/');
 		$path      = trim($path, '/');
 
-		return $this->connector->getAuthenticatedURL($this->bucket, $dirPrefix . $path, 3600, true);
+		return $this->connector->getAuthenticatedURL($this->bucket, $dirPrefix . $path, $this->signedFor, true);
 	}
 
 	/**
