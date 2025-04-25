@@ -56,6 +56,7 @@
                             <option value="s3">PLG_FILESYSTEM_S3_CONFIG_TYPE_S3</option>
                             <option value="cloudfront">PLG_FILESYSTEM_S3_CONFIG_TYPE_CLOUDFRONT</option>
                             <option value="custom">PLG_FILESYSTEM_S3_CONFIG_TYPE_CUSTOM</option>
+                            <option value="customcdn">PLG_FILESYSTEM_S3_CONFIG_TYPE_CUSTOMCDN</option>
                         </field>
 
                         <field name="customendpoint"
@@ -63,7 +64,7 @@
                                label="PLG_FILESYSTEM_S3_CONFIG_CUSTOMENDPOINT_LABEL"
                                description="PLG_FILESYSTEM_S3_CONFIG_CUSTOMENDPOINT_DESC"
                                default=""
-                               showon="type:custom"
+                               showon="type:custom[OR]type:customcdn"
                                X_filter="url"
                                X_validate="url"
                         />
@@ -89,7 +90,7 @@
                                label="PLG_FILESYSTEM_S3_CONFIG_CDN_URL_LABEL"
                                description="PLG_FILESYSTEM_S3_CONFIG_CDN_URL_DESC"
                                default=""
-                               showon="type:cloudfront"
+                               showon="type:cloudfront[OR]type:customcdn"
                                filter="url"
                                validate="url"
                         />
@@ -215,7 +216,7 @@
                                label="PLG_FILESYSTEM_S3_CONFIG_USEHTTPDATEHEADER_LABEL"
                                description="PLG_FILESYSTEM_S3_CONFIG_USEHTTPDATEHEADER_DESC"
                                default="0"
-                               showon="type:custom"
+                               showon="type:custom[OR]type:customcdn"
                         >
                             <option value="0">JNO</option>
                             <option value="1">JYES</option>
@@ -227,7 +228,7 @@
                                label="PLG_FILESYSTEM_S3_CONFIG_PRESIGNEDBUCKETINURL_LABEL"
                                description="PLG_FILESYSTEM_S3_CONFIG_PRESIGNEDBUCKETINURL_DESC"
                                default="0"
-                               showon="type:custom"
+                               showon="type:custom[OR]type:customcdn"
                         >
                             <option value="0">JNO</option>
                             <option value="1">JYES</option>

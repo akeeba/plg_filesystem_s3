@@ -41,7 +41,7 @@ class Preview
 	 *
 	 * @since  1.0.0
 	 */
-	public const PREVIEW_CLOUDFRONT = 'cloudfront';
+	public const PREVIEW_CDN = 'cdn';
 
 	/**
 	 * Never preview images
@@ -160,7 +160,7 @@ class Preview
 		}
 
 		// Constrain the preview option
-		if (!in_array($this->preview, [self::PREVIEW_NONE, self::PREVIEW_CLOUDFRONT, self::PREVIEW_ALWAYS]))
+		if (!in_array($this->preview, [self::PREVIEW_NONE, self::PREVIEW_CDN, self::PREVIEW_ALWAYS]))
 		{
 			$this->preview = self::PREVIEW_NONE;
 		}
@@ -227,14 +227,14 @@ class Preview
 	/**
 	 * Should image preview be enabled for this image?
 	 *
-	 * @param   string  $fileName      The filename we check whether we should preview.
-	 * @param   bool    $isCloudFront  Is this a CloudFront distribution?
+	 * @param   string  $fileName  The filename we check whether we should preview.
+	 * @param   bool    $isCDN     Is this a CDN distribution?
 	 *
 	 * @return  bool
 	 *
 	 * @since   1.0.0
 	 */
-	public function shouldPreview(string $fileName, bool $isCloudFront = false): bool
+	public function shouldPreview(string $fileName, bool $isCDN = false): bool
 	{
 		// We can only preview images. How this is determined depends on the setting of the previewExtensions.
 		if (!$this->isImage($fileName))
@@ -253,8 +253,8 @@ class Preview
 				return false;
 				break;
 
-			case self::PREVIEW_CLOUDFRONT:
-				return $isCloudFront;
+			case self::PREVIEW_CDN:
+				return $isCDN;
 				break;
 		}
 	}

@@ -1,3 +1,7 @@
+Amazon S3 Filesystem for Joomla 1.2.0
+================================================================================
++ Support for third party CDNs with S3-compatible APIs (e.g. BunnyCDN)
+
 Amazon S3 Filesystem for Joomla 1.1.4
 ================================================================================
 ~ Rewritten bucket validation rule, taking into account Amazon's latest recommendations (January 2025) [#17]

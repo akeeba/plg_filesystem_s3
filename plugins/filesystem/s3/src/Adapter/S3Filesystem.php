@@ -140,7 +140,7 @@ class S3Filesystem implements AdapterInterface
 	private $bucket = '';
 
 	/**
-	 * The base CDN URL for CloudFront distributions
+	 * The base CDN URL for CDN distributions
 	 *
 	 * @var   string
 	 * @since 1.0.0
@@ -180,12 +180,12 @@ class S3Filesystem implements AdapterInterface
 	private $dualStack = false;
 
 	/**
-	 * Is this an S3 bucket which serves as the origin for a CloudFront distribution?
+	 * Is this an S3 bucket which serves as the origin for a CDN distribution?
 	 *
 	 * @var   bool
 	 * @since 1.0.0
 	 */
-	private $isCloudFront = false;
+	private $isCDN = false;
 
 	/**
 	 * Should I be using path access? Default false, use virtual hosting access instead.
@@ -399,18 +399,18 @@ class S3Filesystem implements AdapterInterface
 	{
 		$type         = $connection['type'] ?? 's3';
 		$cdnUrl       = trim($connection['cdn_url'] ?? '');
-		$isCloudFront = ($type === 'cloudfront') && !empty($cdnUrl);
+		$isCDN        = in_array($type, ['cloudfront', 'customcdn']) && !empty($cdnUrl);
 		$signature    = $connection['signature'] ?? 'v4';
 		$region       = $connection['region'] ?? 'us-east-1';
 		$customRegion = $connection['$region'] ?? '';
 		$setup        = [
 			'accessKey'            => $connection['accesskey'] ?? '',
 			'bucket'               => $connection['bucket'] ?? '',
-			'cdnUrl'               => $isCloudFront ? ($cdnUrl) : null,
+			'cdnUrl'               => $isCDN ? ($cdnUrl) : null,
 			'customEndpoint'       => $type === 'custom' ? $connection['customendpoint'] : null,
 			'directory'            => $connection['directory'] ?? '',
 			'dualStack'            => ($connection['dualstack'] ?? '1') === '1',
-			'isCloudFront'         => $isCloudFront,
+			'isCDN'                => $isCDN,
 			'isPathAccess'         => ($connection['pathaccess'] ?? '') === 'path',
 			'name'                 => $connection['label'] ?? null,
 			'region'               => $region === '' ? $customRegion : $region,
@@ -922,7 +922,7 @@ class S3Filesystem implements AdapterInterface
 	 */
 	public function getUrl(string $path): string
 	{
-		if ($this->isCloudFront)
+		if ($this->isCDN)
 		{
 			return rtrim($this->cdnUrl, '/') . '/' . $this->getEncodedPath(ltrim($path, '/'));
 		}
@@ -1203,7 +1203,7 @@ class S3Filesystem implements AdapterInterface
 		 *
 		 * The actual thumbnail path needs to be provided in a completely undocumented object parameter.
 		 */
-		if (($type === 'file') && $this->preview->shouldPreview($obj->path, $this->isCloudFront))
+		if (($type === 'file') && $this->preview->shouldPreview($obj->path, $this->isCDN))
 		{
 			$obj->thumb_path = $this->preview->getResized($this->getUrl($obj->path), $date ?? null, $this->application);
 		}
