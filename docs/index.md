@@ -48,6 +48,8 @@ Each Connection has the following options.
 * Custom S3-Compatible Storage Provider. Lets you use this plugin with third party services which provide an S3-compatible API. You will need to enter the endpoint URL to the third party service's S3-compatible API. Depending on the service this may be slow and/or expensive; consult the documentation of the third party service. Public URLs will be pre–authorised URLs with a validity period of 7 days (you can change that). You can use objects stored with non-public ACLs. It's slower and costs more. Common example: Wasabi.
 * Custom S3-Compatible CDN Provider. Choose when you are using a third party CDN with an S3-compatible API for storing your files. Public URLs will be constructed by combining the CDN URL with the relative path of the file in the bucket. You can only use objects stored with public ACLs. Recommended. It's faster and costs less. Common example: BunnyCDN.
 
+**Signed URL validity**. How long the signed URL will be valid for. Only when using Amazon S3 or Custom S3-Compatible Storage Provider connection types. This needs to be equal to or higher than your Joomla! cache time or external CDN/cache time if you use one (whichever is higher), otherwise your visitors will see broken images due to expired links. Not all third party providers support all of these values. Default: 1 hour.
+
 **Custom Endpoint (URL)**. If you are using a third party (non-Amazon) service you need to enter its Endpoint URL. This MUST be a full URL, including the protocol and path (the latter if applicable). For example `https://s3.example.com` or `http://example.com/s3api`. DO NOT enter just a hostname such as ~`s3.example.com`~. It WILL NOT work.
 
 **Access Key**. The Access Key for your Amazon S3 user. If you have created a user through Amazon IAM please make sure that the user has the rights to list bucket contents, create objects, delete objects, copy objects and get objects. If any permission is missing the plugin will not work properly and you will be the one to blame for it.
@@ -71,6 +73,12 @@ Each Connection has the following options.
 **Directory**. The directory in your bucket which will be the topmost visible folder (root) in this connection. For the bucket root leave this empty. For subdirectories DO NOT use a leading or trailing slash. If you are using the Amazon CloudFront type you must make sure that the Directory you are entering here corresponds to the CDN URL you have entered. Please read the [caveats](caveats.md) in this case.
 
 **Storage class**. The storage class for uploaded, renamed and copied files. We recommend using Standard or Reduced Redundancy Storage. Please read the [caveats](caveats.md) to understand how this affects performance and cost, as well as why renaming or copying a file will change it to use this storage class.
+
+**Access Level (ACL)**. The permissions of uploaded files. Only shown for Amazon S3 or Custom S3-Compatible Storage Provider connection types. _Private_ files can only be accessed using a signed URL; the files cannot be accessed directly even if you know their name. Use this if you want to make files accessible only to non-Guest users. _Public_ means that anyone can download the file if they know its URL. This is the best option for files you want even Guests to be able to access.
+
+**Use HTTP Date header instead of X-Amz-Date header**. Leave No for Amazon S3. Some third party S3-compatible services, such as DreamObjects, need this to work at all. If unsure, don't touch it.
+
+**Force bucket name in pre-signed URL**. Leave No for Amazon S3. Some third party S3-compatible services need this for pre-signed download URLs to be valid.
 
 ### Advanced
 
