@@ -1,6 +1,7 @@
 Amazon S3 Filesystem for Joomla 1.2.0
 ================================================================================
 + Support for third party CDNs with S3-compatible APIs (e.g. BunnyCDN)
++ Choose the default ACL for your uploaded files
 
 Amazon S3 Filesystem for Joomla 1.1.4
 ================================================================================

@@ -194,6 +194,7 @@
                                label="PLG_FILESYSTEM_S3_CONFIG_STORAGE_CLASS_LABEL"
                                description="PLG_FILESYSTEM_S3_CONFIG_STORAGE_CLASS_DESC"
                                default="STANDARD"
+                               validate="options"
                         >
                             <option value="STANDARD">PLG_FILESYSTEM_S3_CONFIG_STORAGE_CLASS_STANDARD</option>
                             <option value="REDUCED_REDUNDANCY">
@@ -207,6 +208,24 @@
                             </option>
                             <option value="GLACIER">PLG_FILESYSTEM_S3_CONFIG_STORAGE_CLASS_GLACIER</option>
                             <option value="DEEP_ARCHIVE">PLG_FILESYSTEM_S3_CONFIG_STORAGE_CLASS_DEEP_ARCHIVE</option>
+                            -->
+                        </field>
+
+                        <field name="acl"
+                               type="list"
+                               label="PLG_FILESYSTEM_S3_CONFIG_ACL_LABEL"
+                               description="PLG_FILESYSTEM_S3_CONFIG_ACL_DESC"
+                               default="public-read"
+                               validate="options"
+                               showon="type:s3[OR]type:custom"
+                        >
+                            <option value="private">PLG_FILESYSTEM_S3_CONFIG_ACL_OPT_PRIVATE</option>
+                            <option value="public-read">PLG_FILESYSTEM_S3_CONFIG_ACL_OPT_PUBLIC_READ</option>
+                            <!--
+                            <option value="public-read-write">PLG_FILESYSTEM_S3_CONFIG_ACL_OPT_PUBLIC_READ_WRITE</option>
+                            <option value="authenticated-read">PLG_FILESYSTEM_S3_CONFIG_ACL_OPT_AUTHENTICATED_READ</option>
+                            <option value="bucket-owner-read">PLG_FILESYSTEM_S3_CONFIG_ACL_OPT_BUCKET_OWNER_READ</option>
+                            <option value="bucket-owner-full-control">PLG_FILESYSTEM_S3_CONFIG_ACL_OPT_BUCKET_OWNER_FULL_CONTROL</option>
                             -->
                         </field>
 

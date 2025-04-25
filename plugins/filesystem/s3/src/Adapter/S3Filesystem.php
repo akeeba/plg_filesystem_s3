@@ -290,6 +290,8 @@ class S3Filesystem implements AdapterInterface
 	 */
 	private $application;
 
+	private $acl = Acl::ACL_PRIVATE;
+
 	private $useHTTPDateHeader = false;
 
 	private $preSignedBucketInURL = false;
@@ -357,6 +359,11 @@ class S3Filesystem implements AdapterInterface
 			throw new RuntimeException('You have not set up your Bucket');
 		}
 
+		if ($this->isCDN)
+		{
+			$this->acl = Acl::ACL_PUBLIC_READ;
+		}
+
 		// Prepare the configuration
 		$configuration = new Configuration($this->accessKey, $this->secretKey, $this->signature, $this->region);
 
@@ -419,6 +426,7 @@ class S3Filesystem implements AdapterInterface
 			'storageClass'         => $connection['storage_class'] ?? 'STANDARD',
 			'cachingEnabled'       => ($connection['caching'] ?? 0) == 1,
 			'cacheLifetime'        => min(max(0, $connection['cache_time'] ?? 300), 31536000),
+			'acl'                  => $connection['acl'],
 			'useHTTPDateHeader'    => $type === 's3' ? 0 : boolval($connection['useHTTPDateHeader'] ?? 0),
 			'preSignedBucketInURL' => $type === 's3' ? 0 : boolval($connection['preSignedBucketInURL'] ?? 0),
 		];
@@ -480,7 +488,7 @@ class S3Filesystem implements AdapterInterface
 			$destinationPathAbsolute .= '/';
 		}
 
-		$this->copyObject($this->bucket, $sourcePathAbsolute, $destinationPathAbsolute, Acl::ACL_PUBLIC_READ, $this->storageClass);
+		$this->copyObject($this->bucket, $sourcePathAbsolute, $destinationPathAbsolute, $this->acl, $this->storageClass);
 
 		// Clear the cache for the destination folder
 		$this->uncacheDirectory(dirname($destinationPath) ?: '/');
