@@ -1,6 +1,6 @@
 Amazon S3 Filesystem for Joomla 1.2.0
 ================================================================================
-+ Support for third party CDNs with S3-compatible APIs (e.g. BunnyCDN)
++ Support for third party CDNs with S3-compatible APIs
 + Choose the default ACL for your uploaded files
 + Choose the signed URL expiration time (1 minute to 7 days on Amazon S3)
 
