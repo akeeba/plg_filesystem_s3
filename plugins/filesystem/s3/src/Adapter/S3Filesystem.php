@@ -26,6 +26,7 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Filesystem\File;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Uri\Uri;
 use Joomla\Component\Media\Administrator\Adapter\AdapterInterface;
 use Joomla\Component\Media\Administrator\Exception\FileNotFoundException;
 use Akeeba\Plugin\Filesystem\S3\Helper\Preview;
@@ -290,13 +291,7 @@ class S3Filesystem implements AdapterInterface
 	 */
 	private $application;
 
-	private $acl = Acl::ACL_PRIVATE;
-
-	private $signedFor = 3600;
-
 	private $useHTTPDateHeader = false;
-
-	private $preSignedBucketInURL = false;
 
 	/**
 	 * Private constructor
@@ -361,11 +356,6 @@ class S3Filesystem implements AdapterInterface
 			throw new RuntimeException('You have not set up your Bucket');
 		}
 
-		if ($this->isCDN)
-		{
-			$this->acl = Acl::ACL_PUBLIC_READ;
-		}
-
 		// Prepare the configuration
 		$configuration = new Configuration($this->accessKey, $this->secretKey, $this->signature, $this->region);
 
@@ -382,8 +372,6 @@ class S3Filesystem implements AdapterInterface
 		$configuration->setUseLegacyPathStyle($this->isPathAccess);
 
 		$configuration->setUseHTTPDateHeader($this->useHTTPDateHeader);
-
-		$configuration->setPreSignedBucketInURL($this->preSignedBucketInURL);
 
 		// Return the new S3 client instance
 		$this->connector = new Connector($configuration);
@@ -413,7 +401,6 @@ class S3Filesystem implements AdapterInterface
 		$region       = $connection['region'] ?? 'us-east-1';
 		$customRegion = $connection['$region'] ?? '';
 		$setup        = [
-			'signedFor'            => min(max(60, $connection['signed_for'] ?? 3600), 7 * 86400),
 			'accessKey'            => $connection['accesskey'] ?? '',
 			'bucket'               => $connection['bucket'] ?? '',
 			'cdnUrl'               => $isCDN ? ($cdnUrl) : null,
@@ -429,9 +416,7 @@ class S3Filesystem implements AdapterInterface
 			'storageClass'         => $connection['storage_class'] ?? 'STANDARD',
 			'cachingEnabled'       => ($connection['caching'] ?? 0) == 1,
 			'cacheLifetime'        => min(max(0, $connection['cache_time'] ?? 300), 31536000),
-			'acl'                  => $connection['acl'],
 			'useHTTPDateHeader'    => $type === 's3' ? 0 : boolval($connection['useHTTPDateHeader'] ?? 0),
-			'preSignedBucketInURL' => $type === 's3' ? 0 : boolval($connection['preSignedBucketInURL'] ?? 0),
 		];
 
 		return new self($setup, $app);
@@ -491,7 +476,7 @@ class S3Filesystem implements AdapterInterface
 			$destinationPathAbsolute .= '/';
 		}
 
-		$this->copyObject($this->bucket, $sourcePathAbsolute, $destinationPathAbsolute, $this->acl, $this->storageClass);
+		$this->copyObject($this->bucket, $sourcePathAbsolute, $destinationPathAbsolute, Acl::ACL_PUBLIC_READ, $this->storageClass);
 
 		// Clear the cache for the destination folder
 		$this->uncacheDirectory(dirname($destinationPath) ?: '/');
@@ -941,7 +926,9 @@ class S3Filesystem implements AdapterInterface
 		$dirPrefix = $this->directory . (empty($this->directory) ? '' : '/');
 		$path      = trim($path, '/');
 
-		return $this->connector->getAuthenticatedURL($this->bucket, $dirPrefix . $path, $this->signedFor, true);
+		return Uri::getInstance(
+			$this->connector->getAuthenticatedURL($this->bucket, $dirPrefix . $path, 3600, true)
+		)->toString(['scheme', 'user', 'pass', 'host', 'port', 'path', 'fragment']);
 	}
 
 	/**
@@ -1127,7 +1114,7 @@ class S3Filesystem implements AdapterInterface
 	 *
 	 * @see     https://docs.aws.amazon.com/AmazonS3/latest/API/API_CopyObject.html
 	 */
-	private function copyObject(string $bucket, string $from, string $to, string $acl = Acl::ACL_PRIVATE, $storageClass = StorageClass::STANDARD): void
+	private function copyObject(string $bucket, string $from, string $to, string $acl = Acl::ACL_PUBLIC_READ, $storageClass = StorageClass::STANDARD): void
 	{
 		$request = new Request('PUT', $bucket, $to, $this->connector->getConfiguration());
 		$request->setAmzHeader('x-amz-copy-source', $bucket . '/' . $from);

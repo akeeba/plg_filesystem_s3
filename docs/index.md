@@ -4,21 +4,21 @@ Integrate Amazon S3, CloudFront and Amazon S3–compatible storage with Joomla!'
 
 ## Foreword
 
-Joomla 4 introduced the concept of Media Manager adapters which allow you to specify storage for your media files outside of the `images` directory on your site.
+Joomla 4 introduced the concept of Media Manager adapters which allow you to specify storage for your media files outside the `images` directory on your site.
 
-Joomla itself comes with a single adapter called “Filesystem - Local”. It implements the standard media files storage on your server's filesystem. By default it only allows access to the `images` folder but it can be configured to support more folders under your site's root as needed.
+Joomla itself comes with a single adapter called “Filesystem - Local”. It implements the standard media files storage on your server's filesystem. By default, it only allows access to the `images` folder, but it can be configured to support more folders under your site's root as needed.
 
 The true power of Media Manager adapters, though, is that they allow third party developers like us to provide additional adapters for cloud file storage services. This plugin does exactly that, providing integration with [Amazon S3](https://aws.amazon.com/s3/?nc2=h_ql_prod_st_s3) and other third party services which provide an S3–compatible API.
 
-The biggest strength of this plugin, however, lies in the fact that an Amazon S3 bucket can be an _origin_ for an [Amazon CloudFront](https://aws.amazon.com/cloudfront/?nc2=h_ql_prod_nt_cf). The files you upload to the S3 bucket become instantly available to a global Content Delivery Network (CDN). This lets you deliver your media files in an efficient and cost–effective manner to your international audience with minimal cost.
+The biggest strength of this plugin, however, lies in the fact that an Amazon S3 bucket can be an _origin_ for an [Amazon CloudFront](https://aws.amazon.com/cloudfront/?nc2=h_ql_prod_nt_cf). The files you upload to the S3 bucket become instantly available to a global Content Delivery Network (CDN). This lets you deliver your media files in an efficient and cost-effective manner to your international audience with minimal cost.
 
 This plugin uses the same Amazon S3 library as our Akeeba Backup Professional and Akeeba Solo Professional series of products. Do note that it has _more_ performance and operational constraints than our backup software since we are limited to what we can do by the architecture of the Joomla Media Manager. Most importantly, managing large files may result in memory exhaustion or timeouts because we can't employ the same tricks and workarounds we do in our backup software.
 
 ## Assumptions
 
-This plugin and this documentation is written on the assumption that the user is familiar with the Amazon S3 and, optionally, Amazon CloudFront services. We will not explain basic concepts such as what the services are, how they work together, authentication and ACLs. If you are not already familiar with these concepts please consult Amazon's documentation and one of the countless tutorials you cna find on the Internet.
+This plugin and this documentation are written on the assumption that the user is familiar with the Amazon S3 and, optionally, Amazon CloudFront services. We will not explain basic concepts such as what the services are, how they work together, authentication and ACLs. If you are not already familiar with these concepts, please consult Amazon's documentation and one of the countless tutorials you cna find on the Internet.
 
-We also assume that the user has read our [caveats](caveats.md) page which explains some less–than–obvious requirements and side-effects.
+We also assume that the user has read our [caveats](caveats.md) page, which explains some not-so-obvious requirements and side effects.
 
 **⚠️ ATTENTION!** Some third party, S3-compatible services need [special configuration](3pd-config.md).
 
@@ -42,17 +42,21 @@ Each Connection has the following options.
 
 **Name**. How you want this connection to be displayed in the Media Manager. If you change this after you have inserted media files to content you might end up unable to see the selected media file when you edit the content. Choose a name _and stick with it_.
 
-**Connection Type**. You can choose one of Amazon S3, Amazon CloudFront or Custom S3-Compatible Storage Provider. This controls which options you see and how public URLs to your media files work:
-* Amazon S3. You connect to a bucket stored in Amazon S3 proper. Public URLs will be pre–authorised URLs with a validity period of 7 days (you can change that). You can use objects stored with non-public ACLs. It's slower and costs more.
-* Amazon CloudFront. Use this when your bucket stored in Amazon S3 proper is an origin to an Amazon CloudFront distribution (CDN). Public URLs will be constructed by combining the CDN URL with the relative path of the file in the bucket. You can only use objects stored with public ACLs (this is a CloudFront requirement). Recommended. It's faster and costs less.
-* Custom S3-Compatible Storage Provider. Lets you use this plugin with third party services which provide an S3-compatible API. You will need to enter the endpoint URL to the third party service's S3-compatible API. Depending on the service this may be slow and/or expensive; consult the documentation of the third party service. Public URLs will be pre–authorised URLs with a validity period of 7 days (you can change that). You can use objects stored with non-public ACLs. It's slower and costs more.
-* Custom S3-Compatible CDN Provider. Choose when you are using a third party CDN with an S3-compatible API for storing your files. Public URLs will be constructed by combining the CDN URL with the relative path of the file in the bucket. You can only use objects stored with public ACLs. Recommended. It's faster and costs less.
+**Connection Type**. This controls which options you see and how public URLs to your media files work:
+* Amazon S3. You connect to a bucket stored in Amazon S3 proper.
+* Amazon CloudFront. Use this when your bucket stored in Amazon S3 proper is an origin to an Amazon CloudFront distribution (CDN).
+* Custom S3-Compatible Storage Provider. Lets you use this plugin with third party services which provide an S3-compatible API.
+* Custom S3-Compatible CDN Provider. Lets you use a third party CDN offering an S3-compatible API.
 
-**Signed URL validity**. How long the signed URL will be valid for. Only when using Amazon S3 or Custom S3-Compatible Storage Provider connection types. This needs to be equal to or higher than your Joomla! cache time or external CDN/cache time if you use one (whichever is higher), otherwise your visitors will see broken images due to expired links. Not all third party providers support all of these values. Default: 1 hour.
+> ❗**️IMPORTANT**. This plugin will only use **non-signed** URLs to your media files. If you upload files externally to this plugin –such as using Amazon S3's file management interface, an application like CyberDuck, etc– you **MUST** use Public Read ACLs for your uploaded files. Any other ACLs will result in errors.
+
+Uncommon use cases:
+- If you have an Amazon S3 bucket using a third-party CDN for content delivery (e.g. BunnyCDN) you need to use the Amazon CloudFront option. Enter your CDN's public URL in the CDN URL option – it works even if you do not use Amazon CloudFront.
+- If you have a third party S3-compatible bucket using Amazon CloudFront for content delivery you need to use the Custom S3-Compatible CDN Provider. Enter your CloudFront CDN's URL in the CDN URL option.
 
 **Custom Endpoint (URL)**. If you are using a third party (non-Amazon) service you need to enter its Endpoint URL. This MUST be a full URL, including the protocol and path (the latter if applicable). For example `https://s3.example.com` or `http://example.com/s3api`. DO NOT enter just a hostname such as ~`s3.example.com`~. It WILL NOT work.
 
-**Access Key**. The Access Key for your Amazon S3 user. If you have created a user through Amazon IAM please make sure that the user has the rights to list bucket contents, create objects, delete objects, copy objects and get objects. If any permission is missing the plugin will not work properly and you will be the one to blame for it.
+**Access Key**. The Access Key for your Amazon S3 user. If you have created a user through Amazon IAM please make sure the user has the rights to list bucket contents, create objects, delete objects, copy objects and get objects. If any permission is missing the plugin will not work properly.
 
 **Secret Key**. The Secret Key corresponding to the Access Key you provided.
 
@@ -74,11 +78,7 @@ Each Connection has the following options.
 
 **Storage class**. The storage class for uploaded, renamed and copied files. We recommend using Standard or Reduced Redundancy Storage. Please read the [caveats](caveats.md) to understand how this affects performance and cost, as well as why renaming or copying a file will change it to use this storage class.
 
-**Access Level (ACL)**. The permissions of uploaded files. Only shown for Amazon S3 or Custom S3-Compatible Storage Provider connection types. _Private_ files can only be accessed using a signed URL; the files cannot be accessed directly even if you know their name. Use this if you want to make files accessible only to non-Guest users. _Public_ means that anyone can download the file if they know its URL. This is the best option for files you want even Guests to be able to access.
-
 **Use HTTP Date header instead of X-Amz-Date header**. Leave No for Amazon S3. Some third party S3-compatible services, such as DreamObjects, need this to work at all. If unsure, don't touch it.
-
-**Force bucket name in pre-signed URL**. Leave No for Amazon S3. Some third party S3-compatible services need this for pre-signed download URLs to be valid.
 
 ### Advanced
 

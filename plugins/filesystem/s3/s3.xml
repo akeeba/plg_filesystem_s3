@@ -59,25 +59,6 @@
                             <option value="customcdn">PLG_FILESYSTEM_S3_CONFIG_TYPE_CUSTOMCDN</option>
                         </field>
 
-                        <field name="signed_for"
-                               type="list"
-                               label="PLG_FILESYSTEM_S3_CONFIG_SIGNED_FOR_LABEL"
-                               description="PLG_FILESYSTEM_S3_CONFIG_SIGNED_FOR_DESC"
-                               default="3600"
-                               validate="options"
-                               required="true"
-                               showon="type:s3[OR]type:custom"
-                        >
-                            <option value="60">PLG_FILESYSTEM_S3_CONFIG_SIGNED_FOR_OPT_60</option>
-                            <option value="900">PLG_FILESYSTEM_S3_CONFIG_SIGNED_FOR_OPT_900</option>
-                            <option value="1800">PLG_FILESYSTEM_S3_CONFIG_SIGNED_FOR_OPT_1800</option>
-                            <option value="3600">PLG_FILESYSTEM_S3_CONFIG_SIGNED_FOR_OPT_3600</option>
-                            <option value="21600">PLG_FILESYSTEM_S3_CONFIG_SIGNED_FOR_OPT_21600</option>
-                            <option value="43200">PLG_FILESYSTEM_S3_CONFIG_SIGNED_FOR_OPT_43200</option>
-                            <option value="86400">PLG_FILESYSTEM_S3_CONFIG_SIGNED_FOR_OPT_86400</option>
-                            <option value="604800">PLG_FILESYSTEM_S3_CONFIG_SIGNED_FOR_OPT_604800</option>
-                        </field>
-
                         <field name="customendpoint"
                                type="text"
                                label="PLG_FILESYSTEM_S3_CONFIG_CUSTOMENDPOINT_LABEL"
@@ -230,41 +211,11 @@
                             -->
                         </field>
 
-                        <field name="acl"
-                               type="list"
-                               label="PLG_FILESYSTEM_S3_CONFIG_ACL_LABEL"
-                               description="PLG_FILESYSTEM_S3_CONFIG_ACL_DESC"
-                               default="public-read"
-                               validate="options"
-                               showon="type:s3[OR]type:custom"
-                        >
-                            <option value="private">PLG_FILESYSTEM_S3_CONFIG_ACL_OPT_PRIVATE</option>
-                            <option value="public-read">PLG_FILESYSTEM_S3_CONFIG_ACL_OPT_PUBLIC_READ</option>
-                            <!--
-                            <option value="public-read-write">PLG_FILESYSTEM_S3_CONFIG_ACL_OPT_PUBLIC_READ_WRITE</option>
-                            <option value="authenticated-read">PLG_FILESYSTEM_S3_CONFIG_ACL_OPT_AUTHENTICATED_READ</option>
-                            <option value="bucket-owner-read">PLG_FILESYSTEM_S3_CONFIG_ACL_OPT_BUCKET_OWNER_READ</option>
-                            <option value="bucket-owner-full-control">PLG_FILESYSTEM_S3_CONFIG_ACL_OPT_BUCKET_OWNER_FULL_CONTROL</option>
-                            -->
-                        </field>
-
                         <field name="useHTTPDateHeader"
                                type="radio"
                                layout="joomla.form.field.radio.switcher"
                                label="PLG_FILESYSTEM_S3_CONFIG_USEHTTPDATEHEADER_LABEL"
                                description="PLG_FILESYSTEM_S3_CONFIG_USEHTTPDATEHEADER_DESC"
-                               default="0"
-                               showon="type:custom[OR]type:customcdn"
-                        >
-                            <option value="0">JNO</option>
-                            <option value="1">JYES</option>
-                        </field>
-
-                        <field name="preSignedBucketInURL"
-                               type="radio"
-                               layout="joomla.form.field.radio.switcher"
-                               label="PLG_FILESYSTEM_S3_CONFIG_PRESIGNEDBUCKETINURL_LABEL"
-                               description="PLG_FILESYSTEM_S3_CONFIG_PRESIGNEDBUCKETINURL_DESC"
                                default="0"
                                showon="type:custom[OR]type:customcdn"
                         >
