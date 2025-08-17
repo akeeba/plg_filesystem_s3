@@ -11,13 +11,11 @@ defined('_JEXEC') or die;
 
 use Joomla\CMS\Application\CMSApplicationInterface;
 use Joomla\CMS\Date\Date;
-use Joomla\CMS\Factory;
 use Joomla\CMS\Filesystem\File;
-use Joomla\CMS\Filesystem\Folder;
 use Joomla\CMS\Helper\MediaHelper;
-use Joomla\CMS\Http\HttpFactory;
 use Joomla\CMS\Image\Image;
 use Joomla\CMS\Uri\Uri;
+use Joomla\Http\HttpFactory;
 use Joomla\Registry\Registry;
 
 /**
@@ -399,7 +397,7 @@ class Preview
 		// Download the original image into temp storage.
 		try
 		{
-			$http     = HttpFactory::getHttp();
+			$http     = (new HttpFactory())->getHttp();
 			$response = $http->get($url, [], $this->maxThumbnailTime);
 
 			if ($response->getStatusCode() != 200)
