@@ -11,10 +11,10 @@ defined('_JEXEC') or die;
 
 use Joomla\CMS\Application\CMSApplicationInterface;
 use Joomla\CMS\Date\Date;
-use Joomla\CMS\Filesystem\File;
 use Joomla\CMS\Helper\MediaHelper;
 use Joomla\CMS\Image\Image;
 use Joomla\CMS\Uri\Uri;
+use Joomla\Filesystem\File;
 use Joomla\Http\HttpFactory;
 use Joomla\Registry\Registry;
 

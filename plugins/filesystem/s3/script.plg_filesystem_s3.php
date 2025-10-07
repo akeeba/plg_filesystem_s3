@@ -7,10 +7,10 @@
 
 \defined('_JEXEC') || die;
 
-use Joomla\CMS\Filesystem\Folder;
 use Joomla\CMS\Installer\Adapter\PluginAdapter;
 use Joomla\CMS\Installer\InstallerAdapter;
 use Joomla\CMS\Installer\InstallerScript;
+use Joomla\Filesystem\Folder;
 
 class plgFilesystemS3InstallerScript extends InstallerScript
 {

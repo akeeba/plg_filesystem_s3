@@ -1,3 +1,7 @@
+Amazon S3 Filesystem for Joomla 1.2.2
+================================================================================
+~ Joomla 6 compatibility: Joomla\CMS\Filesystem has been removed
+
 Amazon S3 Filesystem for Joomla 1.2.1
 ================================================================================
 ~ Preliminary support for Joomla 6
