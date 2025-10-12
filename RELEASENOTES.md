@@ -3,4 +3,4 @@ Integrate Amazon S3, CloudFront and Amazon S3–compatible storage with Joomla!'
 > [!WARNING]  
 > This plugin only works with files stored with Public ACLs in your bucket.
 
-This plugin is compatible with Joomla 4.4 to 5.4 inclusive. It has also been tested against Joomla 6.0.0-Beta1. The plugin MAY break with future Joomla 6 beta and release candidate releases.
+This plugin is compatible with Joomla 4.4 to 6.0 inclusive.
