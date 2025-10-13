@@ -1,6 +1,45 @@
 <!-- Amazon S3 Filesystem for Joomla update provisioning XML stream -->
 <updates>
     <update>
+        <version>1.2.2</version>
+        <tags>
+            <tag>stable</tag>
+        </tags>
+
+        <downloads>
+            <downloadurl type="full" format="zip">https://github.com/akeeba/plg_filesystem_s3/releases/download/1.2.2/plg_filesystem_s3-1.2.2.zip</downloadurl>
+        </downloads>
+        <sha512>9162ed1b86b9c1ccc6a93a6f791228cce26324ad2a2fb7043f7faa92e52e2817e6320fa22c40618d28ccefd53aa293060df648af49a40c72801d96dc2366adb9</sha512>
+        <sha256>7c0bcd9689488d4a17f55112924820700363623a5b5d1fc8408e13ecc7137f07</sha256>
+        <sha1>bc457ab19e64bc1404763a050c2fdd0818a64c7a</sha1>
+        <md5>ee4b689bcc4095b9a4cea8792166fb36</md5>
+
+        <infourl title="Release Notes">https://github.com/akeeba/plg_filesystem_s3/releases/download/1.2.2</infourl>
+
+        <targetplatform name="joomla" version="4.4|5.[01234]|6.[01234]"/>
+
+        <php_minimum>7.2.0</php_minimum>
+
+        <ars-phpcompat version="7.2"/>
+        <ars-phpcompat version="7.3"/>
+        <ars-phpcompat version="7.4"/>
+        <ars-phpcompat version="8.0"/>
+        <ars-phpcompat version="8.1"/>
+        <ars-phpcompat version="8.2"/>
+        <ars-phpcompat version="8.3"/>
+        <ars-phpcompat version="8.4"/>
+        <ars-phpcompat version="8.5"/>
+
+        <name><![CDATA[Amazon S3 Filesystem for Joomla]]></name>
+        <description><![CDATA[Integrate Amazon S3, CloudFront and Amazon S3–compatible storage with Joomla!'s Media Manager]]></description>
+        <maintainer><![CDATA[Akeeba Ltd]]></maintainer>
+        <maintainerurl><![CDATA[https://www.akeeba.com]]></maintainerurl>
+        <type>plugin</type>
+        <element>s3</element>
+        <folder>filesystem</folder>
+        <client>administrator</client>
+    </update>
+    <update>
         <version>1.2.1</version>
         <tags>
             <tag>stable</tag>
