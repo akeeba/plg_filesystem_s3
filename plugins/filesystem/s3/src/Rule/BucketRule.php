@@ -39,7 +39,7 @@ class BucketRule extends FormRule
 	 *
 	 * @since   1.0.0
 	 */
-	public function test(\SimpleXMLElement $element, $value, $group = null, Registry $input = null, Form $form = null)
+	public function test(\SimpleXMLElement $element, $value, $group = null, ?Registry $input = null, ?Form $form = null)
 	{
 		// Bucket names must be between 3 and 63 characters long.
 		$length = strlen($value);
