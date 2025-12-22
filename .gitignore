@@ -8,3 +8,6 @@ override.properties
 
 ### Composer
 /plugins/filesystem/s3/vendor
+
+### Junk
+.idea/laravel-idea.xml

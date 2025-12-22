@@ -12,18 +12,18 @@
             "source": {
                 "type": "git",
                 "url": "https://github.com/akeeba/s3.git",
-                "reference": "f4f20122476b27ffa243f8a49aeaf7813cbc8932"
+                "reference": "3fed01712c74eef4640e3bfaaa39ef6769e47dc4"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/akeeba/s3/zipball/f4f20122476b27ffa243f8a49aeaf7813cbc8932",
-                "reference": "f4f20122476b27ffa243f8a49aeaf7813cbc8932",
+                "url": "https://api.github.com/repos/akeeba/s3/zipball/3fed01712c74eef4640e3bfaaa39ef6769e47dc4",
+                "reference": "3fed01712c74eef4640e3bfaaa39ef6769e47dc4",
                 "shasum": ""
             },
             "require": {
                 "ext-curl": "*",
                 "ext-simplexml": "*",
-                "php": ">=7.1.0 <8.4"
+                "php": "^7.4.0|^8.0"
             },
             "default-branch": true,
             "type": "library",
@@ -56,7 +56,7 @@
                 "issues": "https://github.com/akeeba/s3/issues",
                 "source": "https://github.com/akeeba/s3/tree/development"
             },
-            "time": "2025-01-06T14:29:07+00:00"
+            "time": "2025-12-22T07:47:47+00:00"
         },
         {
             "name": "league/mime-type-detection",
@@ -131,5 +131,5 @@
     "platform-overrides": {
         "php": "7.4.0"
     },
-    "plugin-api-version": "2.6.0"
+    "plugin-api-version": "2.9.0"
 }
