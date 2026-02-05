@@ -9,6 +9,7 @@ namespace Akeeba\Plugin\Filesystem\S3\Adapter;
 
 defined('_JEXEC') or die;
 
+use Akeeba\Plugin\Filesystem\S3\Helper\Ec2Metadata;
 use Akeeba\Plugin\Filesystem\S3\Helper\Preview;
 use Akeeba\S3\Acl;
 use Akeeba\S3\Configuration;
@@ -245,6 +246,14 @@ class S3Filesystem implements AdapterInterface
 	private $storageClass = 'STANDARD';
 
 	/**
+	 * Security token for temporary EC2 credentials
+	 *
+	 * @var   string
+	 * @since 1.3.0
+	 */
+	private $securityToken = '';
+
+	/**
 	 * Temporary files created via getFile().
 	 *
 	 * These files will be removed when the adapter object is destroyed.
@@ -292,6 +301,14 @@ class S3Filesystem implements AdapterInterface
 	private $application;
 
 	private $useHTTPDateHeader = false;
+
+	/**
+	 * Static cache for EC2 instance credentials (for the duration of the page load)
+	 *
+	 * @var   array|null
+	 * @since 1.3.0
+	 */
+	private static $ec2Credentials = null;
 
 	/**
 	 * Private constructor
@@ -359,6 +376,12 @@ class S3Filesystem implements AdapterInterface
 		// Prepare the configuration
 		$configuration = new Configuration($this->accessKey, $this->secretKey, $this->signature, $this->region);
 
+		// Set security token if using EC2 temporary credentials
+		if (!empty($this->securityToken))
+		{
+			$configuration->setToken($this->securityToken);
+		}
+
 		if ($customEndpoint)
 		{
 			$configuration->setEndpoint($customEndpoint);
@@ -400,8 +423,25 @@ class S3Filesystem implements AdapterInterface
 		$signature    = $connection['signature'] ?? 'v4';
 		$region       = $connection['region'] ?? 'us-east-1';
 		$customRegion = $connection['$region'] ?? '';
+		$accessKey    = $connection['accesskey'] ?? '';
+		$secretKey    = $connection['secretkey'] ?? '';
+		$securityToken = '';
+
+		// If both access key and secret key are empty, try to get EC2 instance credentials
+		if (empty($accessKey) && empty($secretKey))
+		{
+			$ec2Credentials = self::getEc2Credentials($type, $signature);
+
+			if ($ec2Credentials !== null)
+			{
+				$accessKey     = $ec2Credentials['access_key'];
+				$secretKey     = $ec2Credentials['secret_key'];
+				$securityToken = $ec2Credentials['token'];
+			}
+		}
+
 		$setup        = [
-			'accessKey'            => $connection['accesskey'] ?? '',
+			'accessKey'            => $accessKey,
 			'bucket'               => $connection['bucket'] ?? '',
 			'cdnUrl'               => $isCDN ? ($cdnUrl) : null,
 			'customEndpoint'       => $type === 'custom' ? $connection['customendpoint'] : null,
@@ -411,7 +451,8 @@ class S3Filesystem implements AdapterInterface
 			'isPathAccess'         => ($connection['pathaccess'] ?? '') === 'path',
 			'name'                 => $connection['label'] ?? null,
 			'region'               => $region === '' ? $customRegion : $region,
-			'secretKey'            => $connection['secretkey'] ?? '',
+			'secretKey'            => $secretKey,
+			'securityToken'        => $securityToken,
 			'signature'            => in_array($signature, ['v2', 'v4']) ? $signature : 'v4',
 			'storageClass'         => $connection['storage_class'] ?? 'STANDARD',
 			'cachingEnabled'       => ($connection['caching'] ?? 0) == 1,
@@ -420,6 +461,53 @@ class S3Filesystem implements AdapterInterface
 		];
 
 		return new self($setup, $app);
+	}
+
+	/**
+	 * Get EC2 instance credentials (cached for page load duration)
+	 *
+	 * @param   string  $type       Connection type (must be 's3' or 'cloudfront')
+	 * @param   string  $signature  Signature method (must be 'v4')
+	 *
+	 * @return  array|null  Credentials array or null if requirements not met or credentials unavailable
+	 *
+	 * @since   1.3.0
+	 */
+	private static function getEc2Credentials(string $type, string $signature): ?array
+	{
+		// Requirement 1: Must use Amazon S3 (not custom endpoint)
+		if (!in_array($type, ['s3', 'cloudfront']))
+		{
+			return null;
+		}
+
+		// Requirement 3: Must use v4 signature method
+		if ($signature !== 'v4')
+		{
+			return null;
+		}
+
+		// Check if we have cached credentials that are still valid
+		if (self::$ec2Credentials !== null)
+		{
+			if (!Ec2Metadata::areCredentialsExpired(self::$ec2Credentials['expiration']))
+			{
+				return self::$ec2Credentials;
+			}
+
+			// Cached credentials expired, fetch new ones
+			self::$ec2Credentials = null;
+		}
+
+		// Fetch credentials from EC2 metadata service
+		$credentials = Ec2Metadata::getCredentials();
+
+		if ($credentials !== null)
+		{
+			self::$ec2Credentials = $credentials;
+		}
+
+		return $credentials;
 	}
 
 	/**

@@ -10,10 +10,10 @@
     <author>Akeeba Ltd</author>
     <authorEmail>no-reply@akeeba.com</authorEmail>
     <authorUrl>https://www.akeeba.com</authorUrl>
-    <copyright>Copyright (c)2022-2025 Akeeba Ltd / Nicholas K. Dionysopoulos</copyright>
+    <copyright>Copyright (c)2022-2026 Akeeba Ltd / Nicholas K. Dionysopoulos</copyright>
     <license>GNU GPL v3 or later</license>
-    <creationDate>2025-10-13</creationDate>
-    <version>1.2.2</version>
+    <creationDate>2026-02-05</creationDate>
+    <version>1.3.0</version>
     <description>PLG_FILESYSTEM_S3_XML_DESCRIPTION</description>
     <namespace path="src">Akeeba\Plugin\Filesystem\S3</namespace>
 

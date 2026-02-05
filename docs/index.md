@@ -22,6 +22,8 @@ We also assume that the user has read our [caveats](caveats.md) page, which expl
 
 **⚠️ ATTENTION!** Some third party, S3-compatible services need [special configuration](3pd-config.md).
 
+**💡 EC2 USERS:** If you're hosting your Joomla site on an Amazon EC2 instance, you can use [IAM role-based authentication](ec2-iam-roles.md) instead of manually providing Access and Secret keys. This is more secure and eliminates the need to store long-term credentials.
+
 ## Installation
 
 [Download](https://github.com/akeeba/plg_filesystem_s3/releases) and install the latest version of the plugin.
@@ -59,6 +61,54 @@ Uncommon use cases:
 **Access Key**. The Access Key for your Amazon S3 user. If you have created a user through Amazon IAM please make sure the user has the rights to list bucket contents, create objects, delete objects, copy objects and get objects. If any permission is missing the plugin will not work properly.
 
 **Secret Key**. The Secret Key corresponding to the Access Key you provided.
+
+#### EC2 IAM Role Authentication
+
+If your Joomla site is hosted on an Amazon EC2 instance, you can leave both the **Access Key** and **Secret Key** fields empty. The plugin will automatically retrieve temporary credentials from the EC2 instance's attached IAM role.
+
+**Requirements for EC2 IAM role authentication:**
+
+1. **Amazon S3 only**: You must use the "Amazon S3" or "Amazon CloudFront" connection type. Custom S3-compatible endpoints are not supported with EC2 credentials.
+
+2. **IMDSv2 enabled**: Your EC2 instance must have Instance Metadata Service Version 2 (IMDSv2) enabled. [Learn how to enable IMDSv2](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/configuring-instance-metadata-service.html).
+
+3. **v4 Signatures**: You must use the v4 signature method. The v2 signature method does not support temporary credentials.
+
+4. **EC2 hosting**: Your Joomla site must be running on an Amazon EC2 instance.
+
+5. **IAM Role attached**: Your EC2 instance must have an IAM role attached with appropriate S3 bucket permissions. [Learn how to create and attach IAM roles to EC2 instances](https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html).
+
+**Example IAM Policy for the EC2 Role:**
+
+Replace `YOUR-BUCKET-NAME` with your actual bucket name:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:ListBucket",
+        "s3:GetBucketLocation"
+      ],
+      "Resource": "arn:aws:s3:::YOUR-BUCKET-NAME"
+    },
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject",
+        "s3:DeleteObject",
+        "s3:PutObjectAcl"
+      ],
+      "Resource": "arn:aws:s3:::YOUR-BUCKET-NAME/*"
+    }
+  ]
+}
+```
+
+The plugin automatically caches the temporary credentials for the duration of the page load and refreshes them when they expire (typically every 6 hours).
 
 **CDN URL**. If you are using the Amazon CloudFront connection type you need to enter the **URL** which corresponds to the Bucket and Directory you are configuring here. This is a complete URL with the protocol and path (the latter if applicable), for example `https://example.cloudfront.net`, `https://example.cloudfront.net/someDirectory`, `https://custom-cname.example.com`, or `https://custom-cname.example.com/someDirectory`. Please read the [caveats](caveats.md).
 
