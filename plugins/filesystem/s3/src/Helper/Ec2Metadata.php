@@ -108,12 +108,14 @@ class Ec2Metadata
 				self::REQUEST_TIMEOUT
 			);
 
-			if ($response->code !== 200 || empty($response->body))
+			$body = trim((string) ($response->getBody() ?: '') ?: '');
+
+			if ($response->getStatusCode() !== 200 || empty($body))
 			{
 				return null;
 			}
 
-			return $response->body;
+			return $body;
 		}
 		catch (\Exception $e)
 		{
@@ -145,12 +147,15 @@ class Ec2Metadata
 				self::REQUEST_TIMEOUT
 			);
 
-			if ($response->code !== 200 || empty($response->body))
+			$body = trim((string) ($response->getBody() ?: '') ?: '');
+
+			if ($response->getStatusCode() !== 200 || empty($body))
 			{
 				return null;
 			}
 
-			return trim($response->body);
+
+			return $body;
 		}
 		catch (\Exception $e)
 		{
@@ -183,12 +188,14 @@ class Ec2Metadata
 				self::REQUEST_TIMEOUT
 			);
 
-			if ($response->code !== 200 || empty($response->body))
+			$body = trim((string) ($response->getBody() ?: '') ?: '');
+
+			if ($response->getStatusCode() !== 200 || empty($body))
 			{
 				return null;
 			}
 
-			$data = json_decode($response->body, true);
+			$data = json_decode($body, true);
 
 			if (
 				!is_array($data)
