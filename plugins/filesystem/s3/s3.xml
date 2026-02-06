@@ -73,7 +73,7 @@
                                type="text"
                                label="PLG_FILESYSTEM_S3_CONFIG_ACCESSKEY_LABEL"
                                default=""
-                               required="true"
+                               required="false"
                                length="50"
                         />
 
@@ -81,7 +81,7 @@
                                type="password"
                                label="PLG_FILESYSTEM_S3_CONFIG_SECRETKEY_LABEL"
                                default=""
-                               required="true"
+                               required="false"
                                length="128"
                         />
 
