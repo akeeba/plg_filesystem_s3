@@ -4,96 +4,77 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is a Joomla 4/5 plugin that integrates Amazon S3 and S3-compatible storage services with Joomla's Media Manager. It allows users to store media files on Amazon S3 and optionally serve them through Amazon CloudFront CDN.
+Joomla 4/5 filesystem plugin (`plg_filesystem_s3`) that integrates Amazon S3 and S3-compatible storage with Joomla's Media Manager. Supports optional CloudFront CDN URL generation.
 
-**Important constraint**: As of version 1.2.0, this plugin only works with files stored with Public ACLs. Files with private ACLs are not supported.
+**Critical constraint**: Only works with files stored with Public ACLs. All uploads are hardcoded to `Acl::ACL_PUBLIC_READ`. The plugin strips query strings from authenticated S3 URLs since it expects public files.
 
-## Build System
+## Build & Development
 
-The project uses Phing as its build system. Build configuration is imported from a shared buildfiles repository.
+- **Build**: `phing git` (default), `phing package-pkg` (ZIP package in `build/release/`), `phing release` (GitHub release)
+- **Dependencies**: `composer install` (vendors go to `plugins/filesystem/s3/vendor/`)
+- **Composer platform target**: PHP 7.4.0
+- **No test suite** exists in this repository
+- Build config is imported from a sibling `../buildfiles/` repository (`common.xml`)
 
-**Build commands**:
-- `phing git` - Default target (defined in common.xml from buildfiles)
-- `phing package-pkg` - Creates the installation package (depends on new-release, setup-properties, package-plugins)
-- `phing release` - Creates a GitHub release
+## Architecture
 
-The build process creates a ZIP package in the `build/release` directory.
+Namespace: `Akeeba\Plugin\Filesystem\S3`
 
-## Development Commands
+All plugin source lives under `plugins/filesystem/s3/`:
 
-**Composer**:
-- `composer install` - Install dependencies (vendors are placed in `plugins/filesystem/s3/vendor/`)
-- Composer platform target: PHP 7.4.0
-- Dependencies include `akeeba/s3` (custom S3 library) and `league/mime-type-detection`
+### Dependency Injection Entry Point
+`services/provider.php` — Joomla DI service provider. Registers the plugin, defines `AKEEBAENGINE` constant, and loads the Composer autoloader. This is the only place the vendor autoloader is required.
 
-**Note**: There are no standard test commands visible in the repository.
+### Core Classes
 
-## Architecture Overview
+1. **`src/Extension/S3.php`** — Main plugin class. Implements `SubscriberInterface` + `ProviderInterface`. Subscribes to `onSetupProviders` event. Parses the `connections` subform config (JSON) and creates one `S3Filesystem` adapter per connection.
 
-### Plugin Structure
+2. **`src/Adapter/S3Filesystem.php`** (~1400 lines) — The workhorse. Implements Joomla's `AdapterInterface`. Private constructor; instantiated via static `getFromConnection()` factory. Handles:
+   - All CRUD operations against S3 via `Akeeba\S3\Connector`
+   - Optional response caching using Joomla's `CallbackController` (cache group: `plg_filesystem_s3`)
+   - Cache invalidation on mutating operations via `uncacheDirectory()`
+   - EC2 IAM Role credential auto-detection when access/secret keys are empty
+   - File name sanitization (`makeSafeName()`: no trailing dots, slashes to underscores, lowercase extensions)
 
-This is a Joomla filesystem plugin (`group="filesystem"`) that implements Joomla's Media Manager adapter interface. The plugin architecture follows:
+3. **`src/Helper/Ec2Metadata.php`** — Retrieves temporary credentials from EC2 IMDSv2. Static-cached per page load with 5-minute expiry buffer. Only used with Amazon S3 (not custom endpoints) and v4 signatures.
 
-1. **Main Plugin Class** (`src/Extension/S3.php`):
-   - Implements `SubscriberInterface` and `ProviderInterface`
-   - Subscribes to `onSetupProviders` event
-   - Returns multiple adapters based on configured connections
-   - Each connection appears as a separate entry in Media Manager
+4. **`src/Helper/Preview.php`** — Thumbnail generation for Media Manager. Supports three modes: Lambda@Edge resize, local cached thumbnails (downloaded + resized to WebP), or raw URLs. Time-budgeted to avoid request timeouts.
 
-2. **Adapter Layer** (`src/Adapter/S3Filesystem.php`):
-   - Implements `AdapterInterface` from Joomla's Media component
-   - Main class that handles all file operations (CRUD, copy, move, search)
-   - Contains caching logic for S3 requests to improve performance
-   - Includes extensive workarounds for inefficiencies in Joomla's Media Manager API
+5. **`src/Filter.php`** — Form filter for directory path sanitization.
 
-3. **S3 Communication Layer** (`vendor/akeeba/s3/`):
-   - Custom S3 library (also used in Akeeba Backup)
-   - Handles S3 signatures (v2 and v4), requests, and responses
-   - Supports both Amazon S3 and S3-compatible services
+6. **`src/Rule/BucketRule.php`** — Form validation rule enforcing AWS S3 bucket naming rules.
 
-### Key Design Patterns
+### S3 Communication Layer
+`vendor/akeeba/s3/` — Akeeba's custom S3 library (also used in Akeeba Backup). Handles signatures (v2/v4), requests, and responses. Installed via Composer as `akeeba/s3`.
 
-**Connection Configuration**: The plugin supports multiple connections through a subform configuration. Each connection creates a separate adapter instance with:
-- Access credentials (access key, secret key)
-- Bucket and region information
-- Optional CDN URL for CloudFront or custom CDN
-- Storage class, caching settings, and other options
+### Joomla Media Manager API Workarounds
+The adapter contains extensive workarounds for Joomla's inefficient adapter design: `getFile()` is called for both files AND directories, and `getFiles()` is called for both directory listings AND single file metadata. This forces extra S3 API calls on every operation. These workarounds are documented in comments within `getFile()` and `getFiles()`.
 
-**Caching Strategy**: The adapter implements optional caching of S3 API responses using Joomla's cache system to reduce API calls and improve performance. Cache can be enabled per-connection with configurable lifetime (10s to 1 year).
+## Plugin Configuration
 
-**Joomla API Workarounds**: The code contains detailed comments (lines 677-701, 787-812 in S3Filesystem.php) explaining significant inefficiencies in Joomla's Media Manager adapter design:
-- `getFile()` is used for both files AND directories
-- `getFiles()` is used for both directory listings AND single file metadata
-- This results in multiple unnecessary API calls for each operation
+Configured via Joomla's plugin parameters with a `connections` subform (multiple S3 connections). Each connection specifies: type (s3/cloudfront/custom/customcdn), credentials, bucket, region, signature version, storage class, CDN URL, caching settings. The XML manifest is `s3.xml`.
 
-### File Operations
+## Key Implementation Details
 
-All file operations go through the S3Filesystem adapter:
-- **Directory listings**: Use `getBucket()` with delimiter for non-recursive, without for recursive
-- **File metadata**: Use `headObject()` to get file information
-- **File upload**: Use `putObject()` with Input class, always sets Public Read ACL
-- **File download**: Use `getObject()` to download to temp file, return file handle
-- **Copy/Move**: S3 has no atomic move, so copy then delete source
-- **Delete**: Recursive for directories (can timeout on large directories)
+- **Storage classes**: STANDARD, REDUCED_REDUNDANCY, STANDARD_IA, ONEZONE_IA
+- **Move operation**: S3 has no atomic move — implemented as copy + delete source
+- **Directory creation**: S3 has no real folders — creates a `.` placeholder file with trailing `/` key
+- **Temporary file cleanup**: Tracked in `$tempFiles` array, cleaned up in `__destruct()`
+- **MIME detection**: `league/mime-type-detection` (finfo) with fallback to built-in extension map (`MIME_TYPES` constant)
+- **EC2 IAM Role auth** (v1.3.0+): Empty access+secret keys triggers IMDSv2 credential fetch. Requires Amazon S3, v4 signatures, EC2 with IAM role.
+- **Install script** (`script.plg_filesystem_s3.php`): Handles OPcache invalidation and PSR-4 namespace map rebuild on install/update
 
-### URL Generation
+## Coding Conventions
 
-The adapter generates two types of URLs:
-1. **CDN URLs**: When `isCDN` is true, returns the configured CDN URL + path
-2. **S3 URLs**: Returns authenticated (signed) S3 URLs with query string removed (because only public files are supported)
+- Allman brace style (opening brace on its own line)
+- `defined('_JEXEC') or die;` guard on all PHP files
+- Tab indentation
+- PHPDoc with `@since` version tags
+- PHP 7.4 compatible syntax (no union types, no named arguments, no match expressions)
 
 ## Compatibility
 
 - PHP: ^7.2 || ^8.0 (platform target: 7.4.0)
 - Joomla: Latest release + latest LTS (currently 4.x and 5.x)
-- Only tests on supported (non-EOL) PHP versions
-
-## Important Implementation Notes
-
-1. **All uploaded files use Public Read ACL** - This is hardcoded throughout the adapter
-2. **Storage classes**: STANDARD, REDUCED_REDUNDANCY, STANDARD_IA, ONEZONE_IA are supported
-3. **No signed URLs**: The plugin strips query strings from authenticated URLs because it expects public files
-4. **Temporary files**: The adapter tracks temporary files created during operations and cleans them up in the destructor
-5. **MIME type detection**: Uses league/mime-type-detection with fallback to a built-in map of common extensions
-6. **Path safety**: File names are sanitized to prevent issues with S3 (no trailing dots, slashes converted to underscores, lowercase extensions)
-7. **EC2 IAM Role Support** (v1.3.0+): When both Access Key and Secret Key are left empty, the plugin automatically retrieves temporary credentials from EC2 instance metadata service (IMDSv2). Requirements: Amazon S3 only, v4 signatures, EC2 hosting, IMDSv2 enabled, IAM role attached. See `docs/ec2-iam-roles.md` for details.
+- Only tested on supported (non-EOL) PHP versions
+- Minimum requirements enforced in install script: PHP 7.4.0, Joomla 4.3.0
