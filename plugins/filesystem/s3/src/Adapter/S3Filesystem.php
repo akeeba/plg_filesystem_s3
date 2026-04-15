@@ -444,7 +444,7 @@ class S3Filesystem implements AdapterInterface
 			'accessKey'            => $accessKey,
 			'bucket'               => $connection['bucket'] ?? '',
 			'cdnUrl'               => $isCDN ? ($cdnUrl) : null,
-			'customEndpoint'       => $type === 'custom' ? $connection['customendpoint'] : null,
+			'customEndpoint'       => in_array($type, ['custom', 'customcdn']) ? $connection['customendpoint'] : null,
 			'directory'            => $connection['directory'] ?? '',
 			'dualStack'            => ($connection['dualstack'] ?? '1') === '1',
 			'isCDN'                => $isCDN,
