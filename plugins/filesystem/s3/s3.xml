@@ -85,19 +85,43 @@
                                length="128"
                         />
 
-                        <field name="cdn_url"
-                               type="url"
-                               label="PLG_FILESYSTEM_S3_CONFIG_CDN_URL_LABEL"
-                               description="PLG_FILESYSTEM_S3_CONFIG_CDN_URL_DESC"
+	                        <field name="cdn_url"
+	                               type="url"
+	                               label="PLG_FILESYSTEM_S3_CONFIG_CDN_URL_LABEL"
+	                               description="PLG_FILESYSTEM_S3_CONFIG_CDN_URL_DESC"
                                default=""
                                showon="type:cloudfront[OR]type:customcdn"
-                               filter="url"
-                               validate="url"
-                        />
+	                               filter="url"
+	                               validate="url"
+	                        />
 
-                        <field name="dualstack"
-                               type="radio"
-                               layout="joomla.form.field.radio.switcher"
+	                        <field name="acl"
+	                               type="list"
+	                               label="PLG_FILESYSTEM_S3_CONFIG_ACL_LABEL"
+	                               description="PLG_FILESYSTEM_S3_CONFIG_ACL_DESC"
+	                               default="public-read"
+	                               validate="options"
+	                        >
+	                            <option value="public-read">PLG_FILESYSTEM_S3_CONFIG_ACL_PUBLIC_READ</option>
+	                            <option value="private">PLG_FILESYSTEM_S3_CONFIG_ACL_PRIVATE</option>
+	                            <option value="authenticated-read">PLG_FILESYSTEM_S3_CONFIG_ACL_AUTHENTICATED_READ</option>
+	                            <option value="bucket-owner-read">PLG_FILESYSTEM_S3_CONFIG_ACL_BUCKET_OWNER_READ</option>
+	                            <option value="bucket-owner-full-control">
+	                                PLG_FILESYSTEM_S3_CONFIG_ACL_BUCKET_OWNER_FULL_CONTROL
+	                            </option>
+	                        </field>
+
+	                        <field name="acl_warning"
+	                               type="note"
+	                               label="PLG_FILESYSTEM_S3_CONFIG_ACL_WARNING_LABEL"
+	                               text="PLG_FILESYSTEM_S3_CONFIG_ACL_WARNING_TEXT"
+	                               class="alert alert-error"
+	                               showon="acl!:public-read"
+	                        />
+
+	                        <field name="dualstack"
+	                               type="radio"
+	                               layout="joomla.form.field.radio.switcher"
                                label="PLG_FILESYSTEM_S3_CONFIG_DUALSTACK_LABEL"
                                description="PLG_FILESYSTEM_S3_CONFIG_DUALSTACK_DESC"
                                default="1"

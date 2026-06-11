@@ -2,7 +2,7 @@
 
 Pre-signed URLs have been removed from this plugin as of version 1.2.0, released in April 2025.
 
-**ACTION REQUIRED**. If you were using an S3 (or S3-compatible) bucket without a CloudFront CDN distribution, you will need to make sure all your files are stored with Public Read ACLs on your bucket. This plugin will no longer work with files that have Private ACLs. You can use a third party tool or application such as CloudBerry, CyberDuck, or `s3cmd` to change the ACLs of your files. While you can use Amazon S3's file manager, we do not recommend this as it requires you to change the ACLs of each file, one by one, which is extremely tedious.
+**ACTION REQUIRED**. If you are using an S3 (or S3-compatible) bucket without a CloudFront CDN distribution, you still need all files to have Public Read ACLs on your bucket. Non-public ACLs only work when this plugin is configured with a CDN-enabled connection and a valid CDN URL. You can use a third party tool or application such as CloudBerry, CyberDuck, or `s3cmd` to change the ACLs of your files. While you can use Amazon S3's file manager, we do not recommend this as it requires you to change the ACLs of each file, one by one, which is extremely tedious.
 
 ## What happened
 
@@ -32,6 +32,6 @@ You're, of course, welcome to submit a Pull Request with your idea to solve this
 
 This meant that for the last nearly two years the only way to correctly use this plugin was to set up a CloudFront distribution of your S3 bucket. Anything else would simply result in errors.
 
-As a result, we removed the use of pre-signed URLs to allow use of this plugin with any S3 bucket, even when not using a CDN. This means that only files with Public ACLs can be used with this plugin.
+As a result, we removed the use of pre-signed URLs to allow use of this plugin with any S3 bucket, even when not using a CDN. This means that direct bucket URLs only work with files using Public ACLs; non-public ACLs require a CDN-enabled connection with a configured CDN URL.
 
-If you had uploaded files with this plugin in the past you will need to change their ACLs to Public. We recommend using a third-party tool or application such as CloudBerry, CyberDuck, or `s3cmd` to change the ACLs of your files _en masse_. While you can use Amazon S3's file manager, we do not recommend this as it requires you to change the ACLs of each file, one by one, which is extremely tedious.
+If you had uploaded files with this plugin in the past and you are not using a CDN-enabled connection, you will need to change their ACLs to Public. We recommend using a third-party tool or application such as CloudBerry, CyberDuck, or `s3cmd` to change the ACLs of your files _en masse_. While you can use Amazon S3's file manager, we do not recommend this as it requires you to change the ACLs of each file, one by one, which is extremely tedious.

@@ -126,13 +126,13 @@ We **VERY STRONGLY** recommend using this plugin with S3 buckets configured as o
 
 ### Object access control (ACL)
 
-This plugin is designed with just the Media Manager use case in mind: public media, accessible to all. As a result, we always use the ‘Public’ ACL for newly uploaded files i.e. everyone can read them, but only the owner can modify them. This is deliberate and won't change. You cannot upload private files with this media manager adapter plugin.
+This plugin is designed with the Media Manager use case in mind: media files that must be reachable through the URLs inserted into your content. By default, newly uploaded files use the ‘Public Read’ ACL. You may configure a different canned ACL per connection, but then you must also use a CDN-enabled connection and provide a matching CDN URL. Otherwise Media Manager will generate direct bucket URLs which will not work for non-public objects.
 
-Some of your existing files _may_ have different ACLs. These won't work if you use a CloudFront distribution (CloudFront requires your files to have public read permissions) but _will_ work in the regular Amazon S3 mode since we create pre-authorised URLs.
+Some of your existing files _may_ have different ACLs. If you use a CDN-enabled connection, the CDN must be configured to access those files correctly. If you use the regular Amazon S3 mode, Media Manager will generate direct bucket URLs without authentication, which means non-public objects will not work there.
 
-Do note that Amazon S3 does not have an atomic rename / move operation. Renaming a file in the Media Manager creates a copy of the file and deletes the original. The new file will have Public ACL _regardless of what was the ACL of the original file_. Again, this is deliberate and will not change.
+Do note that Amazon S3 does not have an atomic rename / move operation. Renaming a file in the Media Manager creates a copy of the file and deletes the original. The new file will use the ACL configured in this connection, regardless of what the ACL of the original file was.
 
-**All new files or copied / moved / renamed files WILL get Public permissions. Do not use this plugin if you are not OK with every media file being accessible to everyone who has the URL to that file.**
+**All new files or copied / moved / renamed files WILL use the ACL configured in that connection. If you choose a non-public ACL you must use a CDN-enabled connection with a valid CDN URL.**
 
 ## Media Manager
 
@@ -259,4 +259,3 @@ In the example we provided in “Renaming folders”, if we tried to delete the 
 **DELETING FOLDERS IS EXTREMELY SLOW, PROPORTIONAL TO HOW MANY SUBFOLDERS AND FILES THEY HAVE UNDER THEM**. As a result, we STRONGLY ADVISE AGAINST DELETING FOLDERS.
 
 If you get a timeout deleting folders, it's not a bug, it's how Amazon S3 works.
-

@@ -6,7 +6,7 @@ Integrate Amazon S3, CloudFront and Amazon S3–compatible storage with Joomla!'
 
 ## About
 
-> ⚠️ As of version 1.2.0, this plugin only works with files stored with Public ACLs in your bucket. Files with any kind of private ACLs are not supported ([here's why](docs/not-signed-urls.md)).
+> ⚠️ By default this plugin uploads files with Public Read ACL. You can change the uploaded object ACL per connection, but any non-public ACL requires a CDN-enabled connection with a configured CDN URL. Direct bucket URLs generated without a CDN will not work for non-public objects.
 
 This plugin allows you to save your media files to Amazon S3 and third party storage services compatible with the Amazon S3 API (with S3 signatures version 2 or 4).
 

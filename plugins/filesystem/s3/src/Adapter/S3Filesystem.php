@@ -126,6 +126,14 @@ class S3Filesystem implements AdapterInterface
 	];
 
 	/**
+	 * ACL for newly uploaded or copied objects
+	 *
+	 * @var   string
+	 * @since 1.3.1
+	 */
+	private $acl = Acl::ACL_PUBLIC_READ;
+
+	/**
 	 * Access Key
 	 *
 	 * @var   string
@@ -417,15 +425,16 @@ class S3Filesystem implements AdapterInterface
 	 */
 	public static function getFromConnection(array $connection, CMSApplicationInterface $app): self
 	{
-		$type         = $connection['type'] ?? 's3';
-		$cdnUrl       = trim($connection['cdn_url'] ?? '');
-		$isCDN        = in_array($type, ['cloudfront', 'customcdn']) && !empty($cdnUrl);
-		$signature    = $connection['signature'] ?? 'v4';
-		$region       = $connection['region'] ?? 'us-east-1';
-		$customRegion = $connection['$region'] ?? '';
-		$accessKey    = $connection['accesskey'] ?? '';
+		$type          = $connection['type'] ?? 's3';
+		$cdnUrl        = trim($connection['cdn_url'] ?? '');
+		$isCDN         = in_array($type, ['cloudfront', 'customcdn']) && !empty($cdnUrl);
+		$signature     = $connection['signature'] ?? 'v4';
+		$region        = $connection['region'] ?? 'us-east-1';
+		$customRegion  = $connection['$region'] ?? '';
+		$accessKey     = $connection['accesskey'] ?? '';
 		$secretKey    = $connection['secretkey'] ?? '';
 		$securityToken = '';
+		$acl           = self::normaliseAcl($connection['acl'] ?? Acl::ACL_PUBLIC_READ);
 
 		// If both access key and secret key are empty, try to get EC2 instance credentials
 		if (empty($accessKey) && empty($secretKey))
@@ -450,6 +459,7 @@ class S3Filesystem implements AdapterInterface
 			'isCDN'                => $isCDN,
 			'isPathAccess'         => ($connection['pathaccess'] ?? '') === 'path',
 			'name'                 => $connection['label'] ?? null,
+			'acl'                  => $acl,
 			'region'               => $region === '' ? $customRegion : $region,
 			'secretKey'            => $secretKey,
 			'securityToken'        => $securityToken,
@@ -461,6 +471,28 @@ class S3Filesystem implements AdapterInterface
 		];
 
 		return new self($setup, $app);
+	}
+
+	/**
+	 * Validates the configured ACL against the supported canned ACLs.
+	 *
+	 * @param   string  $acl  The configured ACL
+	 *
+	 * @return  string
+	 *
+	 * @since   1.3.1
+	 */
+	private static function normaliseAcl(string $acl): string
+	{
+		$allowedAcls = [
+			'private',
+			'public-read',
+			'authenticated-read',
+			'bucket-owner-read',
+			'bucket-owner-full-control',
+		];
+
+		return in_array($acl, $allowedAcls, true) ? $acl : Acl::ACL_PUBLIC_READ;
 	}
 
 	/**
@@ -564,7 +596,7 @@ class S3Filesystem implements AdapterInterface
 			$destinationPathAbsolute .= '/';
 		}
 
-		$this->copyObject($this->bucket, $sourcePathAbsolute, $destinationPathAbsolute, Acl::ACL_PUBLIC_READ, $this->storageClass);
+		$this->copyObject($this->bucket, $sourcePathAbsolute, $destinationPathAbsolute, $this->acl, $this->storageClass);
 
 		// Clear the cache for the destination folder
 		$this->uncacheDirectory(dirname($destinationPath) ?: '/');
@@ -638,7 +670,7 @@ class S3Filesystem implements AdapterInterface
 		$directory = $this->directory . (empty($this->directory) ? '' : '/');
 		$directory .= $path . (empty($path) ? '' : '/');
 
-		$this->connector->putObject($input, $this->bucket, $directory . $name, Acl::ACL_PUBLIC_READ, $headers);
+		$this->connector->putObject($input, $this->bucket, $directory . $name, $this->acl, $headers);
 
 		// Clear the cache for the path where the file was created in
 		$this->uncacheDirectory($path);
@@ -670,7 +702,7 @@ class S3Filesystem implements AdapterInterface
 		$directory = $this->directory . (empty($this->directory) ? '' : '/');
 		$directory .= $path . (empty($path) ? '' : '/');
 
-		$this->connector->putObject($input, $this->bucket, $directory . $name . '/', Acl::ACL_PUBLIC_READ);
+		$this->connector->putObject($input, $this->bucket, $directory . $name . '/', $this->acl);
 
 		// Clear the cache for the path where the folder was created in
 		$this->uncacheDirectory($path);
