@@ -128,7 +128,7 @@ We **VERY STRONGLY** recommend using this plugin with S3 buckets configured as o
 
 This plugin is designed with the Media Manager use case in mind: media files that must be reachable through the URLs inserted into your content. By default, newly uploaded files use the ‘Public Read’ ACL. You may configure a different canned ACL per connection, but then you must also use a CDN-enabled connection and provide a matching CDN URL. Otherwise Media Manager will generate direct bucket URLs which will not work for non-public objects.
 
-Some of your existing files _may_ have different ACLs. If you use a CDN-enabled connection, the CDN must be configured to access those files correctly. If you use the regular Amazon S3 mode, Media Manager will generate direct bucket URLs without authentication, which means non-public objects will not work there.
+Some of your existing files _may_ have different ACLs. If you use a CDN-enabled connection, the CDN must be configured to access those files correctly. For Amazon CloudFront this means using an Origin Access Control (OAC) on the S3 origin and a bucket policy which allows that distribution to read from the bucket. If you use the regular Amazon S3 mode, Media Manager will generate direct bucket URLs without authentication, which means non-public objects will not work there. Please read [Using Private Objects Through CloudFront](private-cloudfront.md).
 
 Do note that Amazon S3 does not have an atomic rename / move operation. Renaming a file in the Media Manager creates a copy of the file and deletes the original. The new file will use the ACL configured in this connection, regardless of what the ACL of the original file was.
 

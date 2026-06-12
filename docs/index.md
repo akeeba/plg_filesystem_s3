@@ -50,7 +50,7 @@ Each Connection has the following options.
 * Custom S3-Compatible Storage Provider. Lets you use this plugin with third party services which provide an S3-compatible API.
 * Custom S3-Compatible CDN Provider. Lets you use a third party CDN offering an S3-compatible API.
 
-> ❗**️IMPORTANT**. This plugin will only use **non-signed** URLs to your media files. If you upload files externally to this plugin –such as using Amazon S3's file management interface, an application like CyberDuck, etc– you **MUST** use Public Read ACLs for your uploaded files. Any other ACLs will result in errors.
+> ❗**️IMPORTANT**. This plugin will only use **non-signed** URLs to your media files. If you upload files externally to this plugin –such as using Amazon S3's file management interface, an application like CyberDuck, etc– you **MUST** use Public Read ACLs for your uploaded files unless you are serving them through a correctly configured CDN. For Amazon CloudFront with non-public object ACLs, you need an Origin Access Control (OAC) and a bucket policy allowing that distribution to read from the bucket. Please read [Using Private Objects Through CloudFront](private-cloudfront.md).
 
 Uncommon use cases:
 - If you have an Amazon S3 bucket using a third-party CDN for content delivery (e.g. BunnyCDN) you need to use the Amazon CloudFront option. Enter your CDN's public URL in the CDN URL option – it works even if you do not use Amazon CloudFront.
@@ -111,6 +111,8 @@ Replace `YOUR-BUCKET-NAME` with your actual bucket name:
 The plugin automatically caches the temporary credentials for the duration of the page load and refreshes them when they expire (typically every 6 hours).
 
 **CDN URL**. If you are using the Amazon CloudFront connection type you need to enter the **URL** which corresponds to the Bucket and Directory you are configuring here. This is a complete URL with the protocol and path (the latter if applicable), for example `https://example.cloudfront.net`, `https://example.cloudfront.net/someDirectory`, `https://custom-cname.example.com`, or `https://custom-cname.example.com/someDirectory`. Please read the [caveats](caveats.md).
+
+**Uploaded object ACL**. This controls the canned ACL used for newly uploaded, copied, moved and renamed files. If you choose anything other than Public Read, you must use a CDN-enabled connection with a valid CDN URL. For Amazon CloudFront, this means the distribution must be configured with an Origin Access Control (OAC) and a bucket policy allowing that distribution to read from the S3 bucket. Please read [Using Private Objects Through CloudFront](private-cloudfront.md).
 
 **DualStack (IPv4/IPv6) support**. Amazon S3 has two kinds of endpoints we can use: legacy endpoints which only support IPv4 and the newer DualStack endpoints which support both IPv4 and IPv6. If your server supports IPv6 using the DualStack endpoints makes things a bit faster. If unsure, set this to Yes. If you have a weirdly configured server which can resolve IPv6 DNS entries but cannot talk to IPv6 hosts set this to No and shout at your host for doing something veritably wonky.
 
