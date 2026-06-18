@@ -1,6 +1,7 @@
 Amazon S3 Filesystem for Joomla 1.4.0
 ================================================================================
 + Configurable per-connection object ACL with warning for non-public ACLs requiring a CDN URL [#24]
++ Machine-translated language packs for Greek, French, German, Spanish, Italian, and Portuguese [#27]
 
 Amazon S3 Filesystem for Joomla 1.3.1
 ================================================================================
