@@ -16,7 +16,7 @@ class plgFilesystemS3InstallerScript extends InstallerScript
 {
 	protected $minimumPhp = '7.4.0';
 
-	protected $minimumJoomla = '4.3.0';
+	protected $minimumJoomla = '4.4.0';
 
 	protected $allowDowngrades = true;
 
