@@ -9,7 +9,7 @@ namespace Akeeba\Plugin\Filesystem\S3\Helper;
 
 defined('_JEXEC') or die;
 
-use Joomla\CMS\Http\HttpFactory;
+use Joomla\Http\HttpFactory;
 
 /**
  * Helper class to retrieve temporary credentials from EC2 instance metadata service (IMDSv2)
@@ -98,7 +98,7 @@ class Ec2Metadata
 
 		try
 		{
-			$http     = HttpFactory::getHttp();
+			$http     = (new HttpFactory())->getHttp();
 			$response = $http->put(
 				$url,
 				'',
@@ -138,7 +138,7 @@ class Ec2Metadata
 
 		try
 		{
-			$http     = HttpFactory::getHttp();
+			$http     = (new HttpFactory())->getHttp();
 			$response = $http->get(
 				$url,
 				[
@@ -179,7 +179,7 @@ class Ec2Metadata
 
 		try
 		{
-			$http     = HttpFactory::getHttp();
+			$http     = (new HttpFactory())->getHttp();
 			$response = $http->get(
 				$url,
 				[
