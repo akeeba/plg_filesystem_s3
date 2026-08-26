@@ -430,7 +430,7 @@ class S3Filesystem implements AdapterInterface
 		$isCDN         = in_array($type, ['cloudfront', 'customcdn']) && !empty($cdnUrl);
 		$signature     = $connection['signature'] ?? 'v4';
 		$region        = $connection['region'] ?? 'us-east-1';
-		$customRegion  = $connection['$region'] ?? '';
+		$customRegion  = $connection['custom_region'] ?? '';
 		$accessKey     = $connection['accesskey'] ?? '';
 		$secretKey    = $connection['secretkey'] ?? '';
 		$securityToken = '';
