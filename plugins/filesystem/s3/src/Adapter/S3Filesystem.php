@@ -634,7 +634,7 @@ class S3Filesystem implements AdapterInterface
 
 		$endpoint                       = $this->connector->getConfiguration()->getEndpoint();
 		$headers                        = $this->getStorageTypeHeaders($this->storageClass, $endpoint);
-		$headers['Content-Disposition'] = sprintf('attachment; filename="%s"', basename($name));
+		$headers['Content-Disposition'] = sprintf('attachment; filename="%s"', addcslashes(basename($name), "\"\\\r\n"));
 
 		// TODO Set up Content-Type
 		if ($detector !== null)
