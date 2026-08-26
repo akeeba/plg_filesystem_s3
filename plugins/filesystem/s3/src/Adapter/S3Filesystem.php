@@ -348,7 +348,7 @@ class S3Filesystem implements AdapterInterface
 
 		if (!empty($customEndpoint))
 		{
-			$protoPos = strpos($customEndpoint, ':\\');
+			$protoPos = strpos($customEndpoint, '://');
 
 			if ($protoPos !== false)
 			{
