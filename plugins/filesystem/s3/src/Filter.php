@@ -9,6 +9,8 @@ namespace Akeeba\Plugin\Filesystem\S3;
 
 defined('_JEXEC') or die;
 
+use Akeeba\Plugin\Filesystem\S3\Helper\PathNormaliser;
+
 /**
  * XML form filters for the plugin's options
  *
@@ -32,6 +34,7 @@ final class Filter
 			return '';
 		}
 
+		$directory = PathNormaliser::normaliseUnicodePath($directory);
 		$directory = str_replace('\\', '/', trim($directory, '/\\'));
 
 		while (strpos($directory, '//') !== false)
