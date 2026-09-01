@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Joomla 4/5 filesystem plugin (`plg_filesystem_s3`) that integrates Amazon S3 and S3-compatible storage with Joomla's Media Manager. Supports optional CloudFront CDN URL generation.
+Joomla 5/6 filesystem plugin (`plg_filesystem_s3`) that integrates Amazon S3 and S3-compatible storage with Joomla's Media Manager. Supports optional CloudFront CDN URL generation.
 
 **Critical constraint**: Only works with files stored with Public ACLs. All uploads are hardcoded to `Acl::ACL_PUBLIC_READ`. The plugin strips query strings from authenticated S3 URLs since it expects public files.
 
@@ -12,7 +12,7 @@ Joomla 4/5 filesystem plugin (`plg_filesystem_s3`) that integrates Amazon S3 and
 
 - **Build**: `phing git` (default), `phing package-pkg` (ZIP package in `build/release/`), `phing release` (GitHub release)
 - **Dependencies**: `composer install` (vendors go to `plugins/filesystem/s3/vendor/`)
-- **Composer platform target**: PHP 7.4.0
+- **Composer platform target**: PHP 8.1.0
 - **No test suite** exists in this repository
 - Build config is imported from a sibling `../buildfiles/` repository (`common.xml`)
 
@@ -70,11 +70,11 @@ Configured via Joomla's plugin parameters with a `connections` subform (multiple
 - `defined('_JEXEC') or die;` guard on all PHP files
 - Tab indentation
 - PHPDoc with `@since` version tags
-- PHP 7.4 compatible syntax (no union types, no named arguments, no match expressions)
+- PHP 8.1+ compatible syntax (no features from PHP versions newer than the declared ceiling, currently 8.6)
 
 ## Compatibility
 
-- PHP: ^7.2 || ^8.0 (platform target: 7.4.0)
-- Joomla: Latest release + latest LTS (currently 4.x and 5.x)
+- PHP: 8.1.0 – 8.6.x (platform target: 8.1.0)
+- Joomla: 5.4.x – 6.2.x
 - Only tested on supported (non-EOL) PHP versions
-- Minimum requirements enforced in install script: PHP 7.4.0, Joomla 4.3.0
+- Minimum and maximum requirements enforced in install script: PHP 8.1.0–8.6.x, Joomla 5.4.0–6.2.x

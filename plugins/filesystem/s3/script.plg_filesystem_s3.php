@@ -10,15 +10,64 @@
 use Joomla\CMS\Installer\Adapter\PluginAdapter;
 use Joomla\CMS\Installer\InstallerAdapter;
 use Joomla\CMS\Installer\InstallerScript;
+use Joomla\CMS\Log\Log;
 use Joomla\Filesystem\Folder;
 
 class plgFilesystemS3InstallerScript extends InstallerScript
 {
-	protected $minimumPhp = '7.4.0';
+	protected $minimumPhp = '8.1.0';
 
-	protected $minimumJoomla = '4.4.0';
+	protected $maximumPhp = '8.7';
+
+	protected $minimumJoomla = '5.4.0';
+
+	protected $maximumJoomla = '6.3';
 
 	protected $allowDowngrades = true;
+
+	public function preflight($type, $parent)
+	{
+		if (!parent::preflight($type, $parent))
+		{
+			return false;
+		}
+
+		// Check for the maximum PHP version before continuing
+		$maxPhp = !empty($this->maximumPhp) ? trim($this->maximumPhp) : null;
+
+		if (!empty($maxPhp) && version_compare(PHP_VERSION, $maxPhp, 'ge'))
+		{
+			Log::add(
+				sprintf(
+					'This extension supports PHP versions lower than %s. Your server has a newer PHP version (%s) which has not been tested with it. The installation cannot proceed.',
+					$maxPhp, PHP_VERSION
+				),
+				Log::WARNING,
+				'jerror'
+			);
+
+			return false;
+		}
+
+		// Check for the maximum Joomla version before continuing
+		$maxJoomla = !empty($this->maximumJoomla) ? trim($this->maximumJoomla) : null;
+
+		if (!empty($maxJoomla) && version_compare(JVERSION, $maxJoomla, 'ge'))
+		{
+			Log::add(
+				sprintf(
+					'This extension supports Joomla! versions lower than %s. Your site has a newer Joomla! version (%s) which has not been tested with it. The installation cannot proceed.',
+					$maxJoomla, JVERSION
+				),
+				Log::WARNING,
+				'jerror'
+			);
+
+			return false;
+		}
+
+		return true;
+	}
 
 	public function uninstall(InstallerAdapter $adapter): bool
 	{

@@ -2,6 +2,7 @@ Amazon S3 Filesystem for Joomla 1.4.0
 ================================================================================
 + Configurable per-connection object ACL with warning for non-public ACLs requiring a CDN URL [#24]
 + Machine-translated language packs for Greek, French, German, Spanish, Italian, and Portuguese [#27]
+~ Raised minimum requirements to PHP 8.1 and Joomla 5.4; dropped support for PHP 7.4–8.0 and Joomla 4.x; capped support at PHP 8.6 and Joomla 6.2
 # [MEDIUM] Custom region lookup typo (connection['$region'] → connection['custom_region']) broke the "Custom" region option
 # [LOW] Dead code in custom endpoint protocol detection (':\' instead of '://'); defaulted to useSSL=true so no working configuration was affected
 # [LOW] Escape the Content-Disposition filename in createFile to neutralise quote / backslash / CR / LF
