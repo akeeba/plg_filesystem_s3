@@ -6,11 +6,30 @@ Integrate Amazon S3, CloudFront and Amazon S3–compatible storage with Joomla!'
 
 ## About
 
-> ⚠️ By default this plugin uploads files with Public Read ACL. You can change the uploaded object ACL per connection, but any non-public ACL requires a CDN-enabled connection with a configured CDN URL. Direct bucket URLs generated without a CDN will not work for non-public objects.
+> [!WARNING]
+> By default this plugin uploads files with Public Read ACL. You can change the uploaded object ACL per connection, but any non-public ACL requires a CDN-enabled connection with a configured CDN URL. Direct bucket URLs generated without a CDN will not work for non-public objects.
 
 This plugin allows you to save your media files to Amazon S3 and third party storage services compatible with the Amazon S3 API (with S3 signatures version 2 or 4).
 
 You can optionally use this plugin with Amazon S3 buckets serving as origins for an Amazon CloudFront distribution. In this case the URLs generated and inserted into your content will be based on the CloudFront CDN URL you have configured, making for very efficient and cost-effective content delivery.
+
+## Build instructions
+
+Check out this repository and Akeeba Build Tools — Public Packager using the following directory names:
+
+- `s3filesystem` This repository.
+- `buildfiles` [Akeeba Build Tools — Public Packager](https://github.com/akeeba/buildfiles-public)
+- `build.properties` A file created as per the instructions in `buildfiles/README.md`
+
+Then:
+
+```bash
+cd s3filesystem
+composer install
+phing git
+```
+
+The generated package is under `s3filesystem/release`.
 
 ## Compatibility
 
