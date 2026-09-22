@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.4/phpunit.xsd"
+         bootstrap="tests/integration/bootstrap-e2e.php"
+         processIsolation="false"
+         cacheResult="false"
+         colors="true"
+         defaultTestSuite="integration"
+>
+    <testsuites>
+        <testsuite name="integration">
+            <directory>tests/integration/src/Tests</directory>
+        </testsuite>
+    </testsuites>
+
+    <!--
+        End-to-end tests against a real, disposable Joomla site and a real S3-compatible server (MinIO)
+        over real HTTP. They need a provisioned stack; run tests/integration/docker/run.sh, which
+        provisions, tests and tears down in one go. See tests/integration/README.md.
+
+        Nothing here boots Joomla inside the PHPUnit process — the suite observes the site from outside,
+        over HTTP, and the bucket through MinIO's anonymous read-only view, exactly as a browser would.
+        None of the strict-mode settings the unit suite uses therefore apply.
+    -->
+</phpunit>

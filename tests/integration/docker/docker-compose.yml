@@ -1,0 +1,106 @@
+# Dockerized throwaway stack for the plg_filesystem_s3 end-to-end tests.
+#
+# All versions are configurable through the .env file (see env.dist):
+#   JOOMLA_VERSION, PHP_VERSION, APACHE_VERSION, MYSQL_VERSION, MINIO_VERSION,
+#   MC_VERSION.
+#
+# Do not run this by hand. Use ./run.sh, which scrubs, provisions and tests in
+# one shot. This file only describes the services.
+#
+# There is deliberately no mail sink: the plugin sends no mail, and run.sh
+# switches Joomla's mailer off so nothing else tries to.
+
+name: s3filesystem-e2e
+
+services:
+  db:
+    image: "mysql:${MYSQL_VERSION:-8.4}"
+    environment:
+      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:-root}"
+      MYSQL_DATABASE: "${DB_NAME:-s3fse2e}"
+      MYSQL_USER: "${DB_USER:-s3fse2e}"
+      MYSQL_PASSWORD: "${DB_PASSWORD:-s3fse2e}"
+    command:
+      - "--sql-mode="
+    ports:
+      # Published so the host-side PHPUnit process can seed and inspect fixtures.
+      - "${DB_PORT:-33319}:3306"
+    volumes:
+      - dbdata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-p${DB_ROOT_PASSWORD:-root}"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+
+  php:
+    build:
+      context: .
+      dockerfile: Dockerfile.php
+      args:
+        PHP_VERSION: "${PHP_VERSION:-8.5}"
+        PUID: "${PUID:-1000}"
+        PGID: "${PGID:-1000}"
+    volumes:
+      - ./www:/var/www/html
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        APACHE_VERSION: "${APACHE_VERSION:-2.4}"
+    ports:
+      - "${HTTP_PORT:-8190}:80"
+    volumes:
+      - ./www:/var/www/html
+    depends_on:
+      - php
+
+  # The S3-compatible server every connection under test points at. A real
+  # server, not a stub: request signing (v2 and v4), listing, copy, delete and
+  # the object headers the plugin sets are all exercised against it.
+  #
+  # The site reaches it as http://minio:9000 from inside the compose network.
+  # It is ALSO published to the host, where run.sh grants anonymous READ-ONLY
+  # access to the test bucket (config/minio-anonymous-policy.json.tpl): that is
+  # how the tests inspect the bucket independently of the code under test, and
+  # how they prove an object is publicly readable. MinIO does not implement
+  # object ACLs, so a bucket policy is its only way to make objects public.
+  minio:
+    image: "quay.io/minio/minio:${MINIO_VERSION:-RELEASE.2025-09-07T16-13-09Z}"
+    command: ["server", "/data"]
+    environment:
+      MINIO_ROOT_USER: "${S3_ACCESS_KEY:-s3fse2eaccess}"
+      MINIO_ROOT_PASSWORD: "${S3_SECRET_KEY:-s3fse2esecret}"
+    ports:
+      - "${S3_PORT:-9190}:9000"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  # One-shot MinIO client, with full credentials. Never started by `up`; run.sh
+  # and the tests invoke it with `docker compose run --rm mc …` for everything
+  # the anonymous, read-only host view cannot do: creating the bucket, setting
+  # its policy, seeding fixtures and writing objects behind the plugin's back.
+  mc:
+    image: "quay.io/minio/mc:${MC_VERSION:-RELEASE.2025-08-13T08-35-41Z}"
+    profiles: ["tools"]
+    environment:
+      MC_HOST_e2e: "http://${S3_ACCESS_KEY:-s3fse2eaccess}:${S3_SECRET_KEY:-s3fse2esecret}@minio:9000"
+    volumes:
+      - ./config:/config:ro
+      - ./seed:/seed:ro
+      - ./bulk:/bulk:ro
+    depends_on:
+      - minio
+
+volumes:
+  dbdata:

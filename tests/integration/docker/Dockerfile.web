@@ -1,0 +1,24 @@
+# Apache 2.4 front-end. PHP runs as FastCGI in the separate php-fpm container;
+# Apache proxies *.php requests to it over fcgi://php:9000.
+#
+# AllowOverride All: Joomla's own htaccess.txt is not activated here (SEF
+# rewriting is off), but a site that relies on .htaccess must not have it
+# silently ignored.
+#
+# Apache only. plg_filesystem_s3 has no server-specific behaviour that would make
+# a second (NginX) front-end worth the extra wall-clock.
+
+ARG APACHE_VERSION=2.4
+FROM httpd:${APACHE_VERSION}
+
+RUN sed -i \
+        -e 's|^#\(LoadModule proxy_module .*\)|\1|' \
+        -e 's|^#\(LoadModule proxy_fcgi_module .*\)|\1|' \
+        -e 's|^#\(LoadModule rewrite_module .*\)|\1|' \
+        -e 's|^#\(LoadModule deflate_module .*\)|\1|' \
+        -e 's|^#\(LoadModule expires_module .*\)|\1|' \
+        -e 's|^#\(LoadModule headers_module .*\)|\1|' \
+        /usr/local/apache2/conf/httpd.conf \
+ && echo 'IncludeOptional conf/extra/e2e-vhost.conf' >> /usr/local/apache2/conf/httpd.conf
+
+COPY config/e2e-vhost.conf /usr/local/apache2/conf/extra/e2e-vhost.conf

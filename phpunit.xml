@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.4/phpunit.xsd"
+         bootstrap="UnitTest/bootstrap.php"
+         processIsolation="false"
+         beStrictAboutChangesToGlobalState="true"
+         beStrictAboutOutputDuringTests="true"
+         beStrictAboutTestsThatDoNotTestAnything="true"
+         colors="true"
+         defaultTestSuite="unit"
+>
+    <testsuites>
+        <testsuite name="unit">
+            <directory>UnitTest</directory>
+        </testsuite>
+    </testsuites>
+
+    <!--
+        Only the code that can meaningfully run in isolation. The extension class and the service
+        provider need a booted Joomla; the adapter's listing, caching and CRUD paths need a real S3
+        server. Both are covered by the end-to-end suite (phpunit-integration.xml) instead. The adapter
+        IS listed here, because its connection parsing and URL building are pure and unit-tested.
+    -->
+    <source>
+        <include>
+            <directory suffix=".php">plugins/filesystem/s3/src/Adapter</directory>
+            <directory suffix=".php">plugins/filesystem/s3/src/Helper</directory>
+            <directory suffix=".php">plugins/filesystem/s3/src/Rule</directory>
+            <file>plugins/filesystem/s3/src/Filter.php</file>
+        </include>
+    </source>
+</phpunit>
