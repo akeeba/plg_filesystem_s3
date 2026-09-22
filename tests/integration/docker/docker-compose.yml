@@ -24,7 +24,7 @@ services:
       - "--sql-mode="
     ports:
       # Published so the host-side PHPUnit process can seed and inspect fixtures.
-      - "${DB_PORT:-33319}:3306"
+      - "127.0.0.1:${DB_PORT:-33319}:3306"
     volumes:
       - dbdata:/var/lib/mysql
     healthcheck:
@@ -56,7 +56,7 @@ services:
       args:
         APACHE_VERSION: "${APACHE_VERSION:-2.4}"
     ports:
-      - "${HTTP_PORT:-8190}:80"
+      - "127.0.0.1:${HTTP_PORT:-8190}:80"
     volumes:
       - ./www:/var/www/html
     depends_on:
@@ -79,7 +79,7 @@ services:
       MINIO_ROOT_USER: "${S3_ACCESS_KEY:-s3fse2eaccess}"
       MINIO_ROOT_PASSWORD: "${S3_SECRET_KEY:-s3fse2esecret}"
     ports:
-      - "${S3_PORT:-9190}:9000"
+      - "127.0.0.1:${S3_PORT:-9190}:9000"
     healthcheck:
       test: ["CMD", "mc", "ready", "local"]
       interval: 5s
