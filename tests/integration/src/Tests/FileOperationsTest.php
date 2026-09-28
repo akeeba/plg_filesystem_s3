@@ -189,6 +189,20 @@ class FileOperationsTest extends AbstractE2ETestCase
 		$this->assertSame(["$s/SHOUT.txt"], $this->bucket()->keys($s));
 	}
 
+	public function testRenamingAFolderCreatedOutsideJoomlaSucceeds(): void
+	{
+		$s = $this->scratch();
+		$this->bucket()->put("$s/old/a.txt", "a\n");
+
+		$response = $this->media()->move(self::ADAPTER, "/$s/old", "/$s/new");
+
+		$this->assertSame(["$s/new/a.txt"], $this->bucket()->keys($s));
+
+		$this->knownBug('move-no-placeholder');
+
+		$this->assertApiSuccess($response);
+	}
+
 	public function testNoPhpErrorsDuringFileOperations(): void
 	{
 		$s = $this->scratch();

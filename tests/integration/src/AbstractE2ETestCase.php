@@ -57,6 +57,8 @@ abstract class AbstractE2ETestCase extends TestCase
 		'thumb-marker-warning' => '(known-issues.md #8) Preview writes its failed-download marker before creating the '
 			. 'cache folder: a PHP warning, and the failure is never remembered.',
 		'extension-case'       => '(known-issues.md #9) makeSafeName() does not lowercase the file extension.',
+		'move-no-placeholder'  => '(known-issues.md #10) move() returns a mangled path for a folder with no placeholder '
+			. 'object, so com_media reports 404 although the objects were moved.',
 	];
 
 	protected static Configuration $config;
