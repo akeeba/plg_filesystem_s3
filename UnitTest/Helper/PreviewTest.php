@@ -67,14 +67,17 @@ class PreviewTest extends TestCase
 	 */
 	public function testTheXmlCdnOnlyOptionPreviewsCdnConnections(): void
 	{
-		$this->markTestSkipped(
-			'KNOWN BUG: s3.xml saves preview="cloudfront" but Preview::PREVIEW_CDN is "cdn"; the unknown value '
-			. 'is coerced to PREVIEW_NONE, so "CDN only" disables previews on CDN connections too.'
-		);
-
 		$preview = new Preview(new Registry(['preview' => 'cloudfront']));
 
 		$this->assertTrue($preview->shouldPreview('/photo.png', true));
+		$this->assertFalse($preview->shouldPreview('/photo.png', false));
+	}
+
+	public function testTheXmlNeverOptionPreviewsNothing(): void
+	{
+		$preview = new Preview(new Registry(['preview' => 'never']));
+
+		$this->assertFalse($preview->shouldPreview('/photo.png', true));
 		$this->assertFalse($preview->shouldPreview('/photo.png', false));
 	}
 

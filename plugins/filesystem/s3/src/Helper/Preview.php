@@ -157,6 +157,9 @@ class Preview
 			$this->cacheThumbnails = false;
 		}
 
+		// The plugin form saves "never" and "cloudfront" for its "Never" and "CDN only" options
+		$this->preview = ['never' => self::PREVIEW_NONE, 'cloudfront' => self::PREVIEW_CDN][$this->preview] ?? $this->preview;
+
 		// Constrain the preview option
 		if (!in_array($this->preview, [self::PREVIEW_NONE, self::PREVIEW_CDN, self::PREVIEW_ALWAYS]))
 		{
