@@ -100,6 +100,7 @@ and across agentic harnesses (Claude Code, Codex, Qwen Code, Kimi Code, Junie, â
 | Before youâ€¦ | Read |
 |---|---|
 | fix or harden anything in `S3Filesystem` (security findings included) | [`.claude/memory/core-adapter-parity.md`](.claude/memory/core-adapter-parity.md) |
+| report, triage or fix a security finding | [`.claude/memory/threat-model.md`](.claude/memory/threat-model.md) |
 
 ### Recording new memories
 
