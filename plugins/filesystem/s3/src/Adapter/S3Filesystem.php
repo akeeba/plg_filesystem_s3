@@ -27,6 +27,7 @@ use Joomla\CMS\Cache\CacheControllerFactoryInterface;
 use Joomla\CMS\Cache\Controller\CallbackController;
 use Joomla\CMS\Date\Date;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Helper\MediaHelper;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
 use Joomla\CMS\Uri\Uri;
@@ -620,6 +621,8 @@ class S3Filesystem implements AdapterInterface
 	 */
 	public function createFile(string $name, string $path, $data): string
 	{
+		$this->checkContent($this->makeSafeName($name), $data);
+
 		$input = new Input();
 		$input->assignData($data);
 
@@ -1364,6 +1367,53 @@ class S3Filesystem implements AdapterInterface
 		$headers['X-Amz-Storage-Class'] = $storageClass;
 
 		return $headers;
+	}
+
+	/**
+	 * Applies the site's upload policy (Media options) to a file about to be written.
+	 *
+	 * com_media does not do this itself; Joomla expects each adapter to call MediaHelper::canUpload(), as
+	 * the core local adapter does in its own checkContent(). Without it, the forbidden extension list, the
+	 * MIME checks, the XSS check and the upload restrictions are all silently skipped.
+	 *
+	 * @param   string  $name  The (already sanitised) file name
+	 * @param   string  $data  The file contents
+	 *
+	 * @return  void
+	 *
+	 * @throws  Exception  403 when the upload policy refuses the file, 500 when it cannot be checked
+	 * @since   1.4.0
+	 */
+	private function checkContent(string $name, string $data): void
+	{
+		/**
+		 * canUpload() inspects a file on disk, and decides whether it is an image by the extension of that
+		 * file, so the temporary file must carry the same (lowercase) extension as the uploaded one.
+		 */
+		$ext     = strtolower(File::getExt($name));
+		$tmpPath = $this->application->get('tmp_path', sys_get_temp_dir());
+		$tmpFile = rtrim($tmpPath, '/\\') . '/jmes3_' . bin2hex(random_bytes(8)) . ($ext === '' ? '' : '.' . $ext);
+
+		if (@file_put_contents($tmpFile, $data) === false)
+		{
+			throw new Exception(Text::_('JLIB_MEDIA_ERROR_UPLOAD_INPUT'), 500);
+		}
+
+		try
+		{
+			$can = (new MediaHelper())->canUpload(
+				['name' => $name, 'size' => strlen($data), 'tmp_name' => $tmpFile], 'com_media'
+			);
+		}
+		finally
+		{
+			@unlink($tmpFile);
+		}
+
+		if (!$can)
+		{
+			throw new Exception(Text::_('JLIB_MEDIA_ERROR_UPLOAD_INPUT'), 403);
+		}
 	}
 
 	/**
