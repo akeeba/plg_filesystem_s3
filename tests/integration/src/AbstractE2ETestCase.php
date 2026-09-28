@@ -44,8 +44,6 @@ abstract class AbstractE2ETestCase extends TestCase
 	 *   S3FS_E2E_IGNORE_KNOWN_BUGS=1: nothing is skipped, and each test shows the real behaviour.
 	 */
 	protected const KNOWN_BUGS = [
-		'url-forced-https'     => '(known-issues.md #5) getUrl() always asks akeeba/s3 for an https:// URL, so a '
-			. 'plain-HTTP custom endpoint gets URLs it cannot serve.',
 	];
 
 	protected static Configuration $config;
@@ -210,6 +208,27 @@ abstract class AbstractE2ETestCase extends TestCase
 		$current = json_decode(static::$fixtures->readPluginParams(), true);
 
 		static::$fixtures->writePluginParams(json_encode(array_merge($current, $params), JSON_UNESCAPED_SLASHES));
+	}
+
+	/**
+	 * Change settings of one of the provisioned connections, by its label. tearDown() puts them back.
+	 *
+	 * @param   string                $label     The connection's label, e.g. 'v2path' for the s3-v2path adapter
+	 * @param   array<string, mixed>  $settings  Connection settings, as the plugin form saves them
+	 */
+	protected function setConnectionParams(string $label, array $settings): void
+	{
+		$connections = json_decode(static::$fixtures->readPluginParams(), true)['connections'];
+
+		foreach ($connections as $key => $connection)
+		{
+			if (($connection['label'] ?? '') === $label)
+			{
+				$connections[$key] = array_merge($connection, $settings);
+			}
+		}
+
+		$this->setPluginParams(['connections' => $connections]);
 	}
 
 	// -----------------------------------------------------------------------

@@ -107,6 +107,18 @@
 	                               validate="url"
 	                        />
 
+	                        <field name="url_scheme"
+	                               type="list"
+	                               label="PLG_FILESYSTEM_S3_CONFIG_URL_SCHEME_LABEL"
+	                               description="PLG_FILESYSTEM_S3_CONFIG_URL_SCHEME_DESC"
+	                               default="https"
+	                               showon="type:s3[OR]type:custom"
+	                               validate="options"
+	                        >
+	                            <option value="https">PLG_FILESYSTEM_S3_CONFIG_URL_SCHEME_HTTPS</option>
+	                            <option value="http">PLG_FILESYSTEM_S3_CONFIG_URL_SCHEME_HTTP</option>
+	                        </field>
+
 	                        <field name="acl"
 	                               type="list"
 	                               label="PLG_FILESYSTEM_S3_CONFIG_ACL_LABEL"

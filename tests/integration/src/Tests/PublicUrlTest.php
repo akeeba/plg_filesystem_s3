@@ -36,11 +36,17 @@ class PublicUrlTest extends AbstractE2ETestCase
 		$this->assertSame("Hello, S3!\n", $object->body);
 	}
 
-	public function testAnS3UrlUsesTheEndpointsScheme(): void
+	public function testAnS3UrlUsesHttpsByDefault(): void
 	{
-		$url = $this->urlOf(SiteProvisioner::ADAPTER_V2, '/fixtures/hello.txt');
+		// The E2E MinIO endpoint is http://, but the default protocol for public URLs is HTTPS.
+		$this->assertStringStartsWith('https://', $this->urlOf(SiteProvisioner::ADAPTER_V2, '/fixtures/hello.txt'));
+	}
 
-		$this->knownBug('url-forced-https');
+	public function testAnS3UrlUsesTheChosenProtocol(): void
+	{
+		$this->setConnectionParams('v2path', ['url_scheme' => 'http']);
+
+		$url = $this->urlOf(SiteProvisioner::ADAPTER_V2, '/fixtures/hello.txt');
 
 		$this->assertStringStartsWith(static::$config->getS3()['internalEndpoint'] . '/', $url);
 	}

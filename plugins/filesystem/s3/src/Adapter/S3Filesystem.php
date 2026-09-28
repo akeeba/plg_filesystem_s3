@@ -257,6 +257,14 @@ class S3Filesystem implements AdapterInterface
 	private $storageClass = 'STANDARD';
 
 	/**
+	 * Protocol of the public URLs of files (not CDN URLs, which carry their own): https or http.
+	 *
+	 * @var   string
+	 * @since 1.4.0
+	 */
+	private $urlScheme = 'https';
+
+	/**
 	 * Security token for temporary EC2 credentials
 	 *
 	 * @var   string
@@ -486,6 +494,7 @@ class S3Filesystem implements AdapterInterface
 			'cachingEnabled'       => ($connection['caching'] ?? 0) == 1,
 			'cacheLifetime'        => min(max(0, $connection['cache_time'] ?? 300), 31536000),
 			'useHTTPDateHeader'    => $type === 's3' ? 0 : boolval($connection['useHTTPDateHeader'] ?? 0),
+			'urlScheme'            => ($connection['url_scheme'] ?? 'https') === 'http' ? 'http' : 'https',
 		];
 
 		return new self($setup, $app);
@@ -1160,7 +1169,7 @@ class S3Filesystem implements AdapterInterface
 		$path      = trim($path, '/');
 
 		return Uri::getInstance(
-			$this->connector->getAuthenticatedURL($this->bucket, $dirPrefix . $path, 3600, true)
+			$this->connector->getAuthenticatedURL($this->bucket, $dirPrefix . $path, 3600, $this->urlScheme === 'https')
 		)->toString(['scheme', 'user', 'pass', 'host', 'port', 'path', 'fragment']);
 	}
 

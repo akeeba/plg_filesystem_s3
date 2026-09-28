@@ -71,9 +71,10 @@ class ThumbnailCacheTest extends AbstractE2ETestCase
 
 	public function testAPlainS3ConnectionGetsLocalThumbnails(): void
 	{
-		$thumb = $this->thumbnailOf(SiteProvisioner::ADAPTER_V2);
+		// The site reaches MinIO over plain HTTP; the original is downloaded through the public URL.
+		$this->setConnectionParams('v2path', ['url_scheme' => 'http']);
 
-		$this->knownBug('url-forced-https');
+		$thumb = $this->thumbnailOf(SiteProvisioner::ADAPTER_V2);
 
 		$this->assertStringStartsWith(static::$config->getSiteUrl() . '/media/plg_filesystem_s3/cache/', $thumb);
 	}

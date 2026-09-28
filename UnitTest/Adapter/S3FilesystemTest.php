@@ -328,16 +328,28 @@ class S3FilesystemTest extends TestCase
 	/**
 	 * A plain-HTTP endpoint (a LAN MinIO, say) has no TLS listener, so an https:// URL to it is dead.
 	 */
-	public function testThePublicUrlUsesTheCustomEndpointsScheme(): void
+	/**
+	 * Public URLs use the connection's "Public URL protocol" (known issue #5): HTTPS unless HTTP is chosen, whatever
+	 * the endpoint's own scheme.
+	 *
+	 * @return array<string, array{0: array<string, string>, 1: string}>
+	 */
+	public static function providePublicUrlSchemes(): array
 	{
-		$this->markTestSkipped(
-			'KNOWN BUG: S3Filesystem::getUrl() always calls getAuthenticatedURL(..., $https = true), so an '
-			. 'http:// custom endpoint gets https:// public URLs, which cannot be fetched.'
-		);
+		return [
+			'default'            => [[], 'https://minio:9000/'],
+			'HTTPS'              => [['url_scheme' => 'https'], 'https://minio:9000/'],
+			'HTTP'               => [['url_scheme' => 'http'], 'http://minio:9000/'],
+			'anything else'      => [['url_scheme' => 'gopher'], 'https://minio:9000/'],
+		];
+	}
 
-		$url = $this->adapter(['customendpoint' => 'http://minio:9000'])->getUrl('/x.png');
+	#[DataProvider('providePublicUrlSchemes')]
+	public function testThePublicUrlUsesTheChosenProtocol(array $overrides, string $expectedPrefix): void
+	{
+		$url = $this->adapter(['customendpoint' => 'http://minio:9000'] + $overrides)->getUrl('/x.png');
 
-		$this->assertStringStartsWith('http://minio:9000/', $url);
+		$this->assertStringStartsWith($expectedPrefix, $url);
 	}
 
 	/**

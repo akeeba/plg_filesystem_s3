@@ -54,8 +54,7 @@ What it covers:
 - **Obsolete files**: every file ever removed from the plugin (per Git history) is deleted by the installer on
   update, and nothing that still ships is.
 
-A successful run ends in `OK, but some tests were skipped!`. Each skip is a known product bug; see
-below.
+A successful run ends in `OK`. A skipped test marks a known product bug; see below.
 
 ## Integration suite (`tests/integration/`)
 

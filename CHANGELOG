@@ -2,6 +2,7 @@ Amazon S3 Filesystem for Joomla 1.4.0
 ================================================================================
 + Configurable per-connection object ACL with warning for non-public ACLs requiring a CDN URL [#24]
 + Machine-translated language packs for Greek, French, German, Spanish, Italian, and Portuguese [#27]
++ Public URL protocol option (HTTPS or HTTP) for Amazon S3 and custom S3-compatible connections
 ~ Raised minimum requirements to PHP 8.1 and Joomla 5.4; dropped support for PHP 7.4–8.0 and Joomla 4.x; capped support at PHP 8.6 and Joomla 6.2
 # [HIGH] v4 connections to S3-compatible services signed requests for an empty region; services checking it refused them
 # [HIGH] With v4 signatures and path-style access, public URLs put the bucket in the host name, so they did not load
@@ -18,6 +19,7 @@ Amazon S3 Filesystem for Joomla 1.4.0
 # [LOW] Updating left behind files that older versions shipped (the old bundled S3 library and form rules)
 # [LOW] A failed thumbnail raised a PHP warning with the site's path, and thumbnail cache folders had no index.html
 # [LOW] Storage errors showed bucket names and raw S3 error details to every Media Manager user
+# [LOW] Public URLs were always https://, so files on plain-HTTP storage had dead links and no local thumbnails
 # [LOW] Renaming a folder created outside Joomla showed an error although the folder was renamed
 # [LOW] Copying or moving a file whose name has %, + or ? could copy a different object, or fail
 # [LOW] Cached listings showed file dates in the timezone and language of whoever loaded them first
