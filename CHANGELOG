@@ -4,6 +4,7 @@ Amazon S3 Filesystem for Joomla 1.4.0
 + Machine-translated language packs for Greek, French, German, Spanish, Italian, and Portuguese [#27]
 ~ Raised minimum requirements to PHP 8.1 and Joomla 5.4; dropped support for PHP 7.4–8.0 and Joomla 4.x; capped support at PHP 8.6 and Joomla 6.2
 # [HIGH] With v4 signatures and path-style access, public URLs put the bucket in the host name, so they did not load
+# [MEDIUM] Folders created outside Joomla (e.g. with the AWS CLI or CyberDuck) could not be deleted
 # [MEDIUM] Searching a folder with more than 1,000 files never finished, tying up the server and repeating S3 requests
 # [MEDIUM] TLS host name verification was off for default (dual-stack) and China Amazon S3 connections
 # [MEDIUM] S3 uploads ignored the Media Manager's upload restrictions (forbidden extensions, MIME and XSS checks)

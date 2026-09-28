@@ -789,7 +789,8 @@ class S3Filesystem implements AdapterInterface
 	public function delete(string $path)
 	{
 		$path = $this->checkPath($path);
-		$info = $this->getFile($path);
+
+		[$info, $hasPlaceholder] = $this->statPath($path);
 
 		// Clear the cache for the parent path
 		$this->uncacheDirectory(dirname($path) ?: '/');
@@ -811,6 +812,12 @@ class S3Filesystem implements AdapterInterface
 					// No worries...
 				}
 			}
+		}
+
+		// A folder created outside Joomla has no placeholder object to delete
+		if (!$hasPlaceholder)
+		{
+			return;
 		}
 
 		$dirPrefix = $this->directory . (empty($this->directory) ? '' : '/');
@@ -861,6 +868,25 @@ class S3Filesystem implements AdapterInterface
 	 */
 	public function getFile(string $path = '/'): stdClass
 	{
+		return $this->statPath($path)[0];
+	}
+
+	/**
+	 * Looks up a file or folder, and whether it has an object of its own.
+	 *
+	 * A folder created through Joomla has a `folder/` placeholder object. One created by any other tool (AWS CLI,
+	 * CyberDuck, the S3 console…) has only the objects inside it; it is still a folder, but there is no placeholder
+	 * to copy or delete.
+	 *
+	 * @param   string  $path  The path to the file or folder
+	 *
+	 * @return  array{0: stdClass, 1: bool}  The file or folder, and whether it has an object of its own
+	 *
+	 * @throws  Exception
+	 * @since   1.4.0
+	 */
+	private function statPath(string $path): array
+	{
 		/**
 		 * Joomla's Media Manager has the single most inefficient, nonsensical adapter design I have even seen — and I
 		 * have written plugins for WordPress!
@@ -891,8 +917,9 @@ class S3Filesystem implements AdapterInterface
 		$path      = ltrim($this->checkPath($path), '/');
 		$path      = $dirPrefix . $path;
 
-		$isDir = substr($path, -1) === '/';
-		$found = false;
+		$isDir        = substr($path, -1) === '/';
+		$found        = false;
+		$hasOwnObject = true;
 
 		try
 		{
@@ -928,7 +955,18 @@ class S3Filesystem implements AdapterInterface
 			}
 			catch (CannotGetFile $e)
 			{
-				throw new FileNotFoundException($e->getMessage(), 404, $e);
+				// A folder without a placeholder object still has contents.
+				$prefix   = rtrim($path, '/') . '/';
+				$contents = ($prefix === '/') ? [] : $this->s3('getBucket', $this->bucket, $prefix, null, 1, '/', true);
+
+				if (empty($contents))
+				{
+					throw new FileNotFoundException($e->getMessage(), 404, $e);
+				}
+
+				$meta         = [];
+				$isDir        = true;
+				$hasOwnObject = false;
 			}
 		}
 
@@ -938,13 +976,15 @@ class S3Filesystem implements AdapterInterface
 		$meta['type'] = ($meta['type'] ?? null) === 'application/octet-stream' ? null : ($meta['type'] ?? null);
 		$timeTemp     = $meta['time'] ?? null;
 
-		return $this->dirListingToJoomlaObject([
+		$object = $this->dirListingToJoomlaObject([
 			$nameKey => rtrim($path, '/'),
 			'time'   => is_numeric($timeTemp) ? (int) $timeTemp : time(),
 			'hash'   => $meta['hash'] ?? null,
 			'type'   => $meta['type'] ?? self::MIME_TYPES[$ext] ?? 'application/octet-stream',
 			'size'   => (int) ($meta['size'] ?? 0),
 		], $dirPrefix);
+
+		return [$object, $hasOwnObject];
 	}
 
 	/**
@@ -1184,25 +1224,11 @@ class S3Filesystem implements AdapterInterface
 	 */
 	private function moveUnchecked(string $sourcePath, string $destinationPath, bool $force): string
 	{
-		// Detect directories. Note that the fake `dirname/` zero length file may NOT exist. Hence the exception catch.
-		$skipActualSource = false;
+		// Detect directories. Note that the fake `dirname/` zero length file may NOT exist: there is nothing to copy then.
+		[$sourceInfo, $hasOwnObject] = $this->statPath($sourcePath);
 
-		try
-		{
-			$sourceInfo = $this->getCacheController()->get(
-				function ($sourcePath) {
-					return $this->getFile($sourcePath);
-				},
-				$sourcePath,
-				$this->getCacheId($sourcePath)
-			);
-			$isDir      = $sourceInfo->type === 'dir';
-		}
-		catch (FileNotFoundException $e)
-		{
-			$isDir            = true;
-			$skipActualSource = true;
-		}
+		$isDir            = $sourceInfo->type === 'dir';
+		$skipActualSource = !$hasOwnObject;
 
 		// Recursively move the files of a folder
 		if ($isDir)

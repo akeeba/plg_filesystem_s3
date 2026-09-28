@@ -196,8 +196,6 @@ class FileOperationsTest extends AbstractE2ETestCase
 		$this->bucket()->putMany("$s/external", ['one.txt' => "1\n", 'deeper/two.txt' => "2\n"]);
 		$this->assertFalse($this->bucket()->exists("$s/external/"), 'Precondition: no placeholder object.');
 
-		$this->knownBug('delete-no-placeholder');
-
 		$this->assertApiSuccess($this->media()->delete(self::ADAPTER, "/$s/external"));
 
 		$this->assertSame([], $this->bucket()->keys("$s/external"));
