@@ -10,6 +10,8 @@
   public files is a misconfiguration, not a vulnerability.
 - **Joomla's own Media Manager design is not ours to fix**: every connection is offered to every com_media
   user, and Super Users see plugin settings, secret key included, as with any Joomla extension.
+- **Do not report issues to the Joomla project**, and do not propose doing so. Weaknesses in Joomla core are
+  noted as upstream issues we cannot address (e.g. M2's unescaped names in `joomla-media-select.js`).
 - **Downgrades must stay allowed** (`$allowDowngrades = true`): it is the only way back from a dev release to
   a stable one. Blocking them would be a major bug.
 - **v2 signatures must stay selectable**: some third-party S3-compatible services do not support v4.
