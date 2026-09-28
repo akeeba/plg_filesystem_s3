@@ -10,7 +10,9 @@ namespace Akeeba\Plugin\Filesystem\S3\UnitTest\Adapter;
 defined('_JEXEC') or die;
 
 use Akeeba\Plugin\Filesystem\S3\Adapter\S3Filesystem;
+use Akeeba\Plugin\Filesystem\S3\UnitTest\Stubs\CurlRecorder;
 use Akeeba\S3\Configuration;
+use Akeeba\S3\Request;
 use Joomla\CMS\Application\CMSApplicationInterface;
 use Joomla\Http\HttpFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -380,6 +382,52 @@ class S3FilesystemTest extends TestCase
 		$this->expectExceptionMessage('COM_MEDIA_ERROR_MAKESAFE');
 
 		$this->makeSafeName('"<>"');
+	}
+
+	/**
+	 * @return array<string, array{0: array<string, string>, 1: string, 2: int}>
+	 */
+	public static function provideAmazonConnectionsForTls(): array
+	{
+		return [
+			// The form's defaults: virtual-hosted access over the dual-stack endpoint
+			'defaults (dual-stack)'        => [['bucket' => 'mybucket'], 'mybucket.s3.dualstack.us-east-1.amazonaws.com', 2],
+			'dual-stack off'               => [['bucket' => 'mybucket', 'dualstack' => '0'], 'mybucket.s3.us-east-1.amazonaws.com', 2],
+			'China, dual-stack off'        => [['bucket' => 'mybucket', 'region' => 'cn-north-1', 'dualstack' => '0'], 'mybucket.s3.cn-north-1.amazonaws.com.cn', 2],
+			'China, dual-stack'            => [['bucket' => 'mybucket', 'region' => 'cn-north-1'], 'mybucket.s3.dualstack.cn-north-1.amazonaws.com.cn', 2],
+			// Controls: a dotted bucket name really cannot match Amazon's wildcard certificate
+			'dotted bucket, dual-stack'    => [['bucket' => 'my.bucket'], 'my.bucket.s3.dualstack.us-east-1.amazonaws.com', 0],
+			'dotted bucket, dual-stack off' => [['bucket' => 'my.bucket', 'dualstack' => '0'], 'my.bucket.s3.us-east-1.amazonaws.com', 0],
+		];
+	}
+
+	/**
+	 * akeeba/s3 must verify the TLS host name of the plugin's default Amazon connections (security.md, M3).
+	 *
+	 * The options are recorded from the real cURL calls akeeba/s3 makes, so this keeps guarding the plugin if
+	 * the library drifts.
+	 */
+	#[DataProvider('provideAmazonConnectionsForTls')]
+	public function testAmazonConnectionsVerifyTheTlsHostName(array $overrides, string $host, int $verifyHost): void
+	{
+		$adapter = $this->amazon($overrides);
+		$request = new Request('HEAD', $this->getPrivate($adapter, 'bucket'), '/x.png', $this->configuration($adapter));
+
+		$this->assertSame($host, $request->getHeaders()['Host'], 'The test is not exercising the intended host.');
+
+		CurlRecorder::start();
+
+		try
+		{
+			$request->getResponse();
+		}
+		finally
+		{
+			CurlRecorder::stop();
+		}
+
+		$this->assertSame($verifyHost, CurlRecorder::option(CURLOPT_SSL_VERIFYHOST));
+		$this->assertTrue(CurlRecorder::option(CURLOPT_SSL_VERIFYPEER));
 	}
 
 	public function testSetsTheStorageClassHeaderOnlyForAmazon(): void

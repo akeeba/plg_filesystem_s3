@@ -105,6 +105,7 @@ spl_autoload_register(
 
 // Minimal Joomla symbol stubs, so plugin classes that extend or reference the CMS can be loaded.
 require_once __DIR__ . '/Stubs/joomla-stubs.php';
+require_once __DIR__ . '/Stubs/curl-recorder.php';
 
 ini_set('display_errors', '1');
 error_reporting(E_ALL);

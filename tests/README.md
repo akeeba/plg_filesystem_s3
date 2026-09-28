@@ -38,7 +38,9 @@ What it covers:
   and SSL; path-style, dual-stack and HTTP-date options; bucket sanitising; the canned-ACL allow-list;
   cache-lifetime clamping.
 - **Public URLs**: unsigned, directory-prefixed S3 URLs; CDN URLs; space encoding.
-- **Name sanitising** and the Amazon-only storage-class header.
+- **Name sanitising** (parity with Joomla's local adapter) and the Amazon-only storage-class header.
+- **TLS host name verification** that the bundled akeeba/s3 really applies to Amazon connections
+  (`UnitTest/Stubs/curl-recorder.php` records its cURL options with no network), so upstream drift is caught.
 - **Preview**: which files get thumbnails in each mode, the extension list, dimension clamping, and
   Lambda@Edge URLs.
 - **EC2 metadata (IMDSv2)**: the three-step handshake, and `null` (never an exception or a half-filled
