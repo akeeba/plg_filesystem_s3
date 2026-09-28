@@ -18,6 +18,11 @@ akeeba/s3's private methods, so refactors upstream do not break the guard.
 - Library files exit silently (`defined('AKEEBAENGINE') || die()`), and so does anything `_JEXEC`-guarded:
   a script or PHPUnit that stops with no output is usually a missing constant.
 - `Configuration::setSignatureMethod('v2')` empties the region; set the region after it if you switch back.
+- Take expected Amazon URLs from Amazon's routing rules, never from the code's current output, and test a region
+  other than us-east-1: path-style on the global `s3.amazonaws.com` only works for us-east-1 buckets. A test that
+  expected the global endpoint let f964fcd break every other region until akeeba/s3 ce87df8. Upstream memory
+  `amazon-url-expectations.md` has the rules.
+- Before pushing upstream, pull: the operator also commits there, sometimes the same day.
 - Pinning to a tagged release happens only at release time (`akeeba-deps` skill); `dev-development` is intended.
 
 **Why:** M3, L1, L5 and known issues #2 and #12 were fixed this way in 2026-09, at the operator's request.
