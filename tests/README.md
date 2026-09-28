@@ -49,6 +49,8 @@ What it covers:
   `#`/`?` and NFC normalisation.
 - **Structure**: every shipped PHP file has the `_JEXEC` guard; the installer enforces exactly the
   version range `composer.json` declares.
+- **Language files**: every shipped `.ini` parses strictly, wraps each value in straight double quotes, does
+  not fake-escape apostrophes, and has exactly the en-GB keys.
 - **Obsolete files**: every file ever removed from the plugin (per Git history) is deleted by the installer on
   update, and nothing that still ships is.
 
