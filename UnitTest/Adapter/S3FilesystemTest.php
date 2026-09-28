@@ -345,6 +345,8 @@ class S3FilesystemTest extends TestCase
 	}
 
 	/**
+	 * Expectations are LocalAdapter::getSafeName()'s: File::makeSafe(), then a lowercase extension.
+	 *
 	 * @return array<string, array{0: string, 1: string}>
 	 */
 	public static function provideNames(): array
@@ -353,26 +355,31 @@ class S3FilesystemTest extends TestCase
 			'already safe'           => ['photo.png', 'photo.png'],
 			'trailing dot'           => ['photo.png.', 'photo.png'],
 			'several trailing dots'  => ['notes...', 'notes'],
-			'slash'                  => ['a/b.png', 'a_b.png'],
+			'slash'                  => ['a/b.png', 'ab.png'],
 			'no extension'           => ['README', 'README'],
-			'leading dot kept'       => ['.hidden', '.hidden'],
+			'leading dot'            => ['.hidden', 'hidden'],
+			'spaces kept'            => ['my photo.png', 'my photo.png'],
+			'double dots'            => ['x..php.png', 'xphp.png'],
+			'uppercase extension'    => ['PHOTO.JPG', 'PHOTO.jpg'],
+			'event handler'          => ['x" onerror="alert(document.domain)" y=".png', 'x onerroralertdocument.domain y.png'],
+			'tag'                    => ['y"><svg onload=alert(1)>.png', 'ysvg onloadalert1.png'],
+			'single quotes'          => ["it's.png", 'its.png'],
+			'control characters'     => ["a\r\nb\0c.png", 'abc.png'],
 		];
 	}
 
 	#[DataProvider('provideNames')]
-	public function testMakesNamesSafeForS3(string $name, string $expected): void
+	public function testMakesNamesSafeLikeTheLocalAdapter(string $name, string $expected): void
 	{
 		$this->assertSame($expected, $this->makeSafeName($name));
 	}
 
-	public function testMakingANameSafeLowercasesItsExtension(): void
+	public function testANameWithNothingSafeInItIsRefused(): void
 	{
-		$this->markTestSkipped(
-			'KNOWN BUG: S3Filesystem::makeSafeName() claims to lowercase the extension but re-appends it unchanged '
-			. '(substr($name, 0, -strlen($ext)) . $ext); strtolower() is missing.'
-		);
+		$this->expectException(\Exception::class);
+		$this->expectExceptionMessage('COM_MEDIA_ERROR_MAKESAFE');
 
-		$this->assertSame('PHOTO.jpg', $this->makeSafeName('PHOTO.JPG'));
+		$this->makeSafeName('"<>"');
 	}
 
 	public function testSetsTheStorageClassHeaderOnlyForAmazon(): void

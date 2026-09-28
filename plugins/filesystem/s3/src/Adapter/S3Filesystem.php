@@ -577,8 +577,6 @@ class S3Filesystem implements AdapterInterface
 	 */
 	public function copy(string $sourcePath, string $destinationPath, bool $force = false): string
 	{
-		$sourceInfo      = $this->getFile($sourcePath);
-		$sourcePath      = trim($sourcePath, '/');
 		$destinationPath = trim($destinationPath, '/');
 
 		$parts           = explode('/', $destinationPath);
@@ -586,6 +584,29 @@ class S3Filesystem implements AdapterInterface
 		$directory       = empty($parts) ? '' : implode('/', $parts);
 		$filename        = $this->makeSafeName($filename);
 		$destinationPath = $directory . (empty($directory) ? '' : '/') . $filename;
+
+		return $this->copyUnchecked($sourcePath, $destinationPath);
+	}
+
+	/**
+	 * Copies a file or folder from source to destination, keeping the destination name as given.
+	 *
+	 * Used by copy(), once it has made the new name safe, and by move() for the contents of a folder, which
+	 * keep their names, as they do with Joomla's local adapter.
+	 *
+	 * @param   string  $sourcePath       The source path
+	 * @param   string  $destinationPath  The destination path
+	 *
+	 * @return  string  The destination path
+	 *
+	 * @throws  Exception
+	 * @since   1.4.0
+	 */
+	private function copyUnchecked(string $sourcePath, string $destinationPath): string
+	{
+		$sourceInfo      = $this->getFile($sourcePath);
+		$sourcePath      = trim($sourcePath, '/');
+		$destinationPath = trim($destinationPath, '/');
 
 		$dirPrefix               = $this->directory . (empty($this->directory) ? '' : '/');
 		$sourcePathAbsolute      = $dirPrefix . $sourcePath;
@@ -621,7 +642,31 @@ class S3Filesystem implements AdapterInterface
 	 */
 	public function createFile(string $name, string $path, $data): string
 	{
-		$this->checkContent($this->makeSafeName($name), $data);
+		$name = $this->makeSafeName($name);
+
+		$this->putFile($name, $path, $data);
+
+		return $name;
+	}
+
+	/**
+	 * Writes a file with the given name in the given path, after applying the site's upload policy.
+	 *
+	 * The name is used as given: createFile() has already made it safe, and updateFile() writes back to the
+	 * existing file, as Joomla's local adapter does.
+	 *
+	 * @param   string  $name  The name
+	 * @param   string  $path  The folder
+	 * @param   string  $data  The binary file data
+	 *
+	 * @return  void
+	 *
+	 * @throws  Exception
+	 * @since   1.4.0
+	 */
+	private function putFile(string $name, string $path, $data): void
+	{
+		$this->checkContent($name, $data);
 
 		$input = new Input();
 		$input->assignData($data);
@@ -668,7 +713,6 @@ class S3Filesystem implements AdapterInterface
 			}
 		}
 
-		$name      = $this->makeSafeName($name);
 		$path      = trim($path, '/');
 		$directory = $this->directory . (empty($this->directory) ? '' : '/');
 		$directory .= $path . (empty($path) ? '' : '/');
@@ -677,8 +721,6 @@ class S3Filesystem implements AdapterInterface
 
 		// Clear the cache for the path where the file was created in
 		$this->uncacheDirectory($path);
-
-		return $name;
 	}
 
 	/**
@@ -1070,6 +1112,48 @@ class S3Filesystem implements AdapterInterface
 	 */
 	public function move(string $sourcePath, string $destinationPath, bool $force = false): string
 	{
+		/**
+		 * Like Joomla's local adapter: refuse a new name that would have to be changed to be safe, rather than
+		 * silently changing it, except for the case of its extension.
+		 */
+		$destinationPath = rtrim($destinationPath, '/');
+		$name            = basename($destinationPath);
+		$safeName        = $this->makeSafeName($name);
+
+		if ($safeName === pathinfo($sourcePath, PATHINFO_EXTENSION))
+		{
+			throw new Exception(Text::_('COM_MEDIA_ERROR_MAKESAFE'));
+		}
+
+		if (strtolower($name) !== strtolower($safeName))
+		{
+			throw new Exception(Text::_('JLIB_MEDIA_ERROR_WARNFILENAME'));
+		}
+
+		if ($safeName !== $name)
+		{
+			$destinationPath = substr($destinationPath, 0, -strlen($name)) . $safeName;
+		}
+
+		return $this->moveUnchecked($sourcePath, $destinationPath, $force);
+	}
+
+	/**
+	 * Moves a file or folder, keeping the destination name as given.
+	 *
+	 * The contents of a folder keep their names, as they do with Joomla's local adapter.
+	 *
+	 * @param   string  $sourcePath       The source path
+	 * @param   string  $destinationPath  The destination path
+	 * @param   bool    $force            Force to overwrite
+	 *
+	 * @return  string  The destination path
+	 *
+	 * @throws  Exception
+	 * @since   1.4.0
+	 */
+	private function moveUnchecked(string $sourcePath, string $destinationPath, bool $force): string
+	{
 		// Detect directories. Note that the fake `dirname/` zero length file may NOT exist. Hence the exception catch.
 		$skipActualSource = false;
 
@@ -1109,7 +1193,7 @@ class S3Filesystem implements AdapterInterface
 					continue;
 				}
 
-				$this->move($fileSourcePath, $fileDestPath, $force);
+				$this->moveUnchecked($fileSourcePath, $fileDestPath, $force);
 			}
 		}
 
@@ -1119,7 +1203,7 @@ class S3Filesystem implements AdapterInterface
 		}
 
 		// Amazon S3 doesn't have an atomic move/rename operation. We copy, then delete the source.
-		$newName = $this->copy($sourcePath, $destinationPath, $force);
+		$newName = $this->copyUnchecked($sourcePath, $destinationPath);
 
 		if (!empty($newName) && $newName != $sourcePath)
 		{
@@ -1210,18 +1294,8 @@ class S3Filesystem implements AdapterInterface
 	 */
 	public function updateFile(string $name, string $path, $data)
 	{
-		// Updating and creating an object is the same in S3.
-		$newName = $this->createFile($name, $path, $data);
-
-		// If the name changed delete the old file
-		if ($newName != $name)
-		{
-			$fullPath = trim($path, '/');
-			$fullPath .= empty($fullPath) ? '' : '/';
-			$fullPath .= $name;
-
-			$this->delete($fullPath);
-		}
+		// Updating and creating an object is the same in S3. The file keeps its name.
+		$this->putFile($name, $path, $data);
 	}
 
 	/**
@@ -1417,31 +1491,35 @@ class S3Filesystem implements AdapterInterface
 	}
 
 	/**
-	 * Make a file name safe for use with Amazon S3
+	 * Make a file or folder name safe, exactly as Joomla's local adapter does (LocalAdapter::getSafeName()).
 	 *
-	 * @param   string  $name
+	 * Names reach the browser raw, and Joomla's own editor-insert code puts them into HTML unescaped, so
+	 * anything File::makeSafe() would remove (quotes, angle brackets, parentheses, equals signs) must never
+	 * become part of a key.
+	 *
+	 * @param   string  $name  The file or folder name, without a path
 	 *
 	 * @return  string
 	 *
+	 * @throws  Exception  When nothing safe is left of the name
 	 * @since   1.0.0
 	 */
 	private function makeSafeName(string $name): string
 	{
-		// File names cannot end in a dot
-		$name = rtrim($name, '.');
-
-		// Convert forward slashes to underscores; they are path separators
-		$name = str_replace('/', '_', $name);
-
-		// Lowercase the extension
-		$ext = File::getExt($name);
-
-		if (!empty($ext))
+		if (!$name = File::makeSafe($name))
 		{
-			$name = substr($name, 0, -strlen($ext)) . $ext;
+			throw new Exception(Text::_('COM_MEDIA_ERROR_MAKESAFE'));
 		}
 
-		return $name;
+		// Normalise the extension to lowercase
+		$extension = File::getExt($name);
+
+		if ($extension)
+		{
+			$extension = '.' . strtolower($extension);
+		}
+
+		return substr($name, 0, strlen($name) - strlen($extension)) . $extension;
 	}
 
 	/**

@@ -184,8 +184,6 @@ class FileOperationsTest extends AbstractE2ETestCase
 
 		$this->assertApiSuccess($this->media()->createFile(self::ADAPTER, "/$s", 'SHOUT.TXT', "loud\n"));
 
-		$this->knownBug('extension-case');
-
 		$this->assertSame(["$s/SHOUT.txt"], $this->bucket()->keys($s));
 	}
 

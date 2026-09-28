@@ -20,7 +20,8 @@
  * 2. **A stub carries no behaviour a test could mistake for the real thing.** Where a method has to
  *    return something, it returns the most inert value that lets the caller proceed.
  * 3. **Where fidelity genuinely matters, the real implementation is ported** and the provenance is
- *    stated: `File::getExt()` (makeSafeName and Preview are built on it), `MediaHelper::isImage()`,
+ *    stated: `File::getExt()` and `File::makeSafe()` (makeSafeName and Preview are built on them),
+ *    `MediaHelper::isImage()`,
  *    `Registry::get()`'s treatment of null and empty strings (Preview's defaults depend on it), and
  *    the parts of `Uri` the plugin uses to build and strip URLs.
  *
@@ -107,6 +108,45 @@ namespace Joomla\Filesystem {
 				}
 
 				return $ext;
+			}
+
+			/**
+			 * Ported verbatim from joomla/filesystem 3.x (Joomla 6.1).
+			 */
+			public static function makeSafe($file, array $stripChars = ['#^\.#'])
+			{
+				// Try transliterating the file name using the native php function
+				if (function_exists('transliterator_transliterate') && function_exists('iconv'))
+				{
+					// Using iconv to ignore characters that can't be transliterated
+					$file = iconv("UTF-8", "ASCII//TRANSLIT//IGNORE", transliterator_transliterate('Any-Latin; Latin-ASCII', $file));
+				}
+
+				$regex = array_merge(['#(\.){2,}#', '#[^A-Za-z0-9\.\_\- ]#'], $stripChars);
+				$file  = preg_replace($regex, '', $file);
+
+				// Remove any trailing dots, as those aren't ever valid file names.
+				$file = rtrim($file, '.');
+
+				return trim($file);
+			}
+		}
+	}
+}
+
+namespace Joomla\CMS\Language {
+	defined('_JEXEC') or die;
+
+	/**
+	 * Stand-in for Text: returns the language key untranslated.
+	 */
+	if (!class_exists(Text::class, false))
+	{
+		class Text
+		{
+			public static function _($string)
+			{
+				return $string;
 			}
 		}
 	}

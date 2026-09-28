@@ -100,6 +100,7 @@ thumbnails.
 | `HarnessTest` | The adapters are registered; the seed is in place; the host's bucket view is read-only. |
 | `ListingTest` | Folders, files, metadata, single-file lookups, placeholder-less folders, >1,000-object pagination. |
 | `FileOperationsTest` | Create folder/file, content and headers, 409 without override, edit, copy, move, folder rename, delete (file, folder tree). |
+| `FileNameSafetyTest` | New names (upload, folder, copy) are made safe exactly as the local adapter makes them; renames it would refuse are refused; edits and folder moves keep existing names. |
 | `UploadPolicyTest` | The site's upload policy (forbidden extensions, MIME and XSS checks) refuses the same uploads and edits as core's local adapter, and nothing reaches the bucket. |
 | `PublicUrlTest` | URLs are unsigned, name the object, include the Directory, are fetchable; CDN URLs; spaces. |
 | `AccessControlTest` | Guests, missing/wrong CSRF tokens and a user without create/edit/delete are refused, **and the bucket is unchanged**. Each refusal has a positive control. |
