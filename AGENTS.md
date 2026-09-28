@@ -36,7 +36,11 @@ All plugin source lives under `plugins/filesystem/s3/`:
    - Optional response caching using Joomla's `CallbackController` (cache group: `plg_filesystem_s3`)
    - Cache invalidation on mutating operations via `uncacheDirectory()`
    - EC2 IAM Role credential auto-detection when access/secret keys are empty
-   - File name sanitization (`makeSafeName()`: no trailing dots, slashes to underscores, lowercase extensions)
+   - A safety layer ported from core's `LocalAdapter`: `checkContent()` (`MediaHelper::canUpload()`), `makeSafeName()`
+     (`LocalAdapter::getSafeName()`), `checkPath()` (`Path::check()`), called from every public method
+   - `s3()`: every akeeba/s3 call goes through it, so `safeException()` can hide bucket internals from users (raw for a
+     Super User with Site Debug on) and log the full error to `administrator/logs/plg_filesystem_s3.php`
+   - `statPath()`: file/folder lookup that also recognises folders without a `folder/` placeholder object
 
 3. **`src/Helper/Ec2Metadata.php`** â€” Retrieves temporary credentials from EC2 IMDSv2. Static-cached per page load with 5-minute expiry buffer. Only used with Amazon S3 (not custom endpoints) and v4 signatures.
 
@@ -54,7 +58,7 @@ The adapter contains extensive workarounds for Joomla's inefficient adapter desi
 
 ## Plugin Configuration
 
-Configured via Joomla's plugin parameters with a `connections` subform (multiple S3 connections). Each connection specifies: type (s3/cloudfront/custom/customcdn), credentials, bucket, region, signature version, storage class, CDN URL, caching settings. The XML manifest is `s3.xml`.
+Configured via Joomla's plugin parameters with a `connections` subform (multiple S3 connections). Each connection specifies: type (s3/cloudfront/custom/customcdn), credentials, bucket, region (the form saves `custom` for a custom region), signature version, storage class, CDN URL, public URL protocol (`url_scheme`: https/http), caching settings. The XML manifest is `s3.xml`.
 
 ## Key Implementation Details
 
@@ -64,7 +68,8 @@ Configured via Joomla's plugin parameters with a `connections` subform (multiple
 - **Temporary file cleanup**: Tracked in `$tempFiles` array, cleaned up in `__destruct()`
 - **MIME detection**: `league/mime-type-detection` (finfo) with fallback to built-in extension map (`MIME_TYPES` constant)
 - **EC2 IAM Role auth** (v1.3.0+): Empty access+secret keys triggers IMDSv2 credential fetch. Requires Amazon S3, v4 signatures, EC2 with IAM role.
-- **Install script** (`script.plg_filesystem_s3.php`): Handles OPcache invalidation and PSR-4 namespace map rebuild on install/update
+- **Install script** (`script.plg_filesystem_s3.php`): Handles OPcache invalidation and PSR-4 namespace map rebuild on install/update, and deletes files older versions shipped (`$deleteFiles`/`$deleteFolders`). **When you remove a file from the plugin, add it there**; `UnitTest/Structure/ObsoleteFilesTest` checks Git history and fails otherwise
+- **Listing cache**: shared by all users; anything user-specific (formatted dates) is computed after the cache read (`formatDates()`)
 
 ## Coding Conventions
 
@@ -101,6 +106,9 @@ and across agentic harnesses (Claude Code, Codex, Qwen Code, Kimi Code, Junie, â
 |---|---|
 | fix or harden anything in `S3Filesystem` (security findings included) | [`.claude/memory/core-adapter-parity.md`](.claude/memory/core-adapter-parity.md) |
 | report, triage or fix a security finding | [`.claude/memory/threat-model.md`](.claude/memory/threat-model.md) |
+| change an adapter method, or write an E2E test for one | [`.claude/memory/com-media-adapter-contract.md`](.claude/memory/com-media-adapter-contract.md) |
+| fix anything that lives in akeeba/s3 (signing, host names, pre-signed URLs, `Configuration`) | [`.claude/memory/akeeba-s3-dependency.md`](.claude/memory/akeeba-s3-dependency.md) |
+| add or change an E2E test | [`.claude/memory/e2e-harness-gotchas.md`](.claude/memory/e2e-harness-gotchas.md) |
 
 ### Recording new memories
 
