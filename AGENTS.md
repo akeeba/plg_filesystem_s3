@@ -97,8 +97,9 @@ with `--no-gpg-sign`, `-c commit.gpgsign=false` or unsigned tags.
 Project memory lives in `.claude/memory/`, committed with the code, so that it is shared across machines
 and across agentic harnesses (Claude Code, Codex, Qwen Code, Kimi Code, Junie, …).
 
-There are no memory files yet. When there is something worth remembering, create `.claude/memory/`,
-the topic file, and a table here mapping each file to a concrete trigger ("Before you… | Read").
+| Before you… | Read |
+|---|---|
+| fix or harden anything in `S3Filesystem` (security findings included) | [`.claude/memory/core-adapter-parity.md`](.claude/memory/core-adapter-parity.md) |
 
 ### Recording new memories
 
