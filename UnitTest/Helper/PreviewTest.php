@@ -189,6 +189,11 @@ class PreviewTest extends TestCase
 			{
 				return $default;
 			}
+
+			public function getIdentity()
+			{
+				return null;
+			}
 		};
 	}
 }

@@ -30,6 +30,7 @@ use Joomla\CMS\Factory;
 use Joomla\CMS\Helper\MediaHelper;
 use Joomla\CMS\HTML\HTMLHelper;
 use Joomla\CMS\Language\Text;
+use Joomla\CMS\Log\Log;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Component\Media\Administrator\Adapter\AdapterInterface;
 use Joomla\Component\Media\Administrator\Exception\FileNotFoundException;
@@ -319,6 +320,14 @@ class S3Filesystem implements AdapterInterface
 	 * @since 1.3.0
 	 */
 	private static $ec2Credentials = null;
+
+	/**
+	 * Has the plugin's log file been registered with Joomla's logger during this page load?
+	 *
+	 * @var   bool
+	 * @since 1.4.0
+	 */
+	private static $loggerRegistered = false;
 
 	/**
 	 * Private constructor
@@ -721,7 +730,7 @@ class S3Filesystem implements AdapterInterface
 		$directory = $this->directory . (empty($this->directory) ? '' : '/');
 		$directory .= $path . (empty($path) ? '' : '/');
 
-		$this->connector->putObject($input, $this->bucket, $directory . $name, $this->acl, $headers);
+		$this->s3('putObject', $input, $this->bucket, $directory . $name, $this->acl, $headers);
 
 		// Clear the cache for the path where the file was created in
 		$this->uncacheDirectory($path);
@@ -753,7 +762,7 @@ class S3Filesystem implements AdapterInterface
 		$directory = $this->directory . (empty($this->directory) ? '' : '/');
 		$directory .= $path . (empty($path) ? '' : '/');
 
-		$this->connector->putObject($input, $this->bucket, $directory . $name . '/', $this->acl);
+		$this->s3('putObject', $input, $this->bucket, $directory . $name . '/', $this->acl);
 
 		// Clear the cache for the path where the folder was created in
 		$this->uncacheDirectory($path);
@@ -806,7 +815,7 @@ class S3Filesystem implements AdapterInterface
 			$path .= '/';
 		}
 
-		$this->connector->deleteObject($this->bucket, $path);
+		$this->s3('deleteObject', $this->bucket, $path);
 	}
 
 	/**
@@ -883,7 +892,7 @@ class S3Filesystem implements AdapterInterface
 		{
 			$meta = $this->getCacheController()->get(
 				function ($path) {
-					return $this->connector->headObject($this->bucket, $path);
+					return $this->s3('headObject', $this->bucket, $path);
 				},
 				$path,
 				$this->getCacheId($path, 'head')
@@ -903,7 +912,7 @@ class S3Filesystem implements AdapterInterface
 			{
 				$meta = $this->getCacheController()->get(
 					function ($path) {
-						return $this->connector->headObject($this->bucket, $path);
+						return $this->s3('headObject', $this->bucket, $path);
 					},
 					$path . '/',
 					$this->getCacheId($path, 'head')
@@ -1020,7 +1029,7 @@ class S3Filesystem implements AdapterInterface
 
 				do
 				{
-					$sublisting = $this->connector->getBucket($this->bucket, $path, $marker, 1000, '/', true);
+					$sublisting = $this->s3('getBucket', $this->bucket, $path, $marker, 1000, '/', true);
 
 					if (empty($sublisting))
 					{
@@ -1075,7 +1084,7 @@ class S3Filesystem implements AdapterInterface
 
 		$dirPrefix = $this->directory . (empty($this->directory) ? '' : '/');
 
-		$this->connector->getObject($this->bucket, $dirPrefix . ltrim($path, '/'), $tempName);
+		$this->s3('getObject', $this->bucket, $dirPrefix . ltrim($path, '/'), $tempName);
 
 		return @fopen($tempName, 'r');
 	}
@@ -1254,7 +1263,7 @@ class S3Filesystem implements AdapterInterface
 
 		do
 		{
-			$sublisting = $this->connector->getBucket($this->bucket, $path, $marker, 1000, $delimiter, true);
+			$sublisting = $this->s3('getBucket', $this->bucket, $path, $marker, 1000, $delimiter, true);
 
 			if (empty($sublisting))
 			{
@@ -1351,10 +1360,12 @@ class S3Filesystem implements AdapterInterface
 
 		if ($response->error->isError())
 		{
-			throw new CannotPutFile(
-				sprintf(__METHOD__ . "({$bucket}, {$from}, {$to}): [%s] %s",
-					$response->error->getCode(), $response->error->getMessage()),
-				$response->error->getCode()
+			throw $this->safeException(
+				new CannotPutFile(
+					sprintf(__METHOD__ . "({$bucket}, {$from}, {$to}): [%s] %s",
+						$response->error->getCode(), $response->error->getMessage()),
+					$response->error->getCode()
+				)
 			);
 		}
 	}
@@ -1463,6 +1474,122 @@ class S3Filesystem implements AdapterInterface
 		$headers['X-Amz-Storage-Class'] = $storageClass;
 
 		return $headers;
+	}
+
+	/**
+	 * Calls an akeeba/s3 Connector method, making any exception it throws safe to show (see safeException()).
+	 *
+	 * @param   string  $method   The Connector method
+	 * @param   mixed   ...$args  Its arguments
+	 *
+	 * @return  mixed  Whatever the method returns
+	 *
+	 * @throws  Throwable
+	 * @since   1.4.0
+	 */
+	private function s3(string $method, ...$args)
+	{
+		try
+		{
+			return $this->connector->{$method}(...$args);
+		}
+		catch (Throwable $e)
+		{
+			throw $this->safeException($e);
+		}
+	}
+
+	/**
+	 * Makes an akeeba/s3 exception safe to show to the Media Manager's users.
+	 *
+	 * com_media shows exception messages verbatim, and akeeba/s3's include the bucket, keys, library method
+	 * names and a dump of the S3 error body (which, on Amazon, can contain the signed request). The full message
+	 * is written to the plugin's log file instead, and a generic message keeping only the S3 error code is
+	 * shown. The exception's class and code are kept, so callers catching it behave the same.
+	 *
+	 * A Super User with Site Debug on gets the exception unchanged, to make troubleshooting easier.
+	 *
+	 * @param   Throwable  $e  The exception
+	 *
+	 * @return  Throwable
+	 *
+	 * @since   1.4.0
+	 */
+	private function safeException(Throwable $e): Throwable
+	{
+		if (strpos(get_class($e), 'Akeeba\\S3\\Exception\\') !== 0 || $this->showRawErrors())
+		{
+			return $e;
+		}
+
+		// Messages look like "Connector::method(…): [HTTP status] S3ErrorCode:Explanation"
+		$status = preg_match('#\[([1-9]\d{2})\]#', $e->getMessage(), $matches) ? (int) $matches[1] : 0;
+		$label  = $status ? 'HTTP ' . $status : null;
+
+		if (preg_match('#\]\s*([A-Za-z][A-Za-z0-9]*):#', $e->getMessage(), $matches))
+		{
+			$label = $matches[1];
+		}
+
+		// Not found is routine: the adapter probes for files and folders that may not exist.
+		if ($status !== 404)
+		{
+			$this->logError($e);
+		}
+
+		$message = $label === null
+			? Text::_('PLG_FILESYSTEM_S3_ERR_STORAGE')
+			: Text::sprintf('PLG_FILESYSTEM_S3_ERR_STORAGE_CODE', $label);
+		$class   = get_class($e);
+
+		return new $class($message, $e->getCode());
+	}
+
+	/**
+	 * Should storage errors be shown unchanged? Only to a Super User, and only with Site Debug on.
+	 *
+	 * @return  bool
+	 *
+	 * @since   1.4.0
+	 */
+	private function showRawErrors(): bool
+	{
+		if (!$this->application->get('debug'))
+		{
+			return false;
+		}
+
+		try
+		{
+			$user = $this->application->getIdentity();
+		}
+		catch (Throwable)
+		{
+			return false;
+		}
+
+		return $user !== null && $user->authorise('core.admin');
+	}
+
+	/**
+	 * Writes the full message of a storage error to the plugin's log file.
+	 *
+	 * @param   Throwable  $e  The exception
+	 *
+	 * @return  void
+	 *
+	 * @since   1.4.0
+	 */
+	private function logError(Throwable $e): void
+	{
+		if (!self::$loggerRegistered)
+		{
+			Log::addLogger(['text_file' => 'plg_filesystem_s3.php'], Log::ALL, ['plg_filesystem_s3']);
+
+			self::$loggerRegistered = true;
+		}
+
+		Log::add($e->getMessage(), Log::ERROR, 'plg_filesystem_s3');
 	}
 
 	/**

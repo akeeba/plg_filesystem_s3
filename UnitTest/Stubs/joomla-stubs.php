@@ -134,6 +134,31 @@ namespace Joomla\Filesystem {
 	}
 }
 
+namespace Joomla\CMS\Log {
+	defined('_JEXEC') or die;
+
+	/**
+	 * Stand-in for Log: accepts everything, writes nothing.
+	 */
+	if (!class_exists(Log::class, false))
+	{
+		class Log
+		{
+			public const ALL = 30719;
+
+			public const ERROR = 8;
+
+			public static function addLogger(array $options, $priorities = self::ALL, array $categories = [])
+			{
+			}
+
+			public static function add($entry, $priority = self::ALL, $category = '')
+			{
+			}
+		}
+	}
+}
+
 namespace Joomla\CMS\Language {
 	defined('_JEXEC') or die;
 
@@ -147,6 +172,11 @@ namespace Joomla\CMS\Language {
 			public static function _($string)
 			{
 				return $string;
+			}
+
+			public static function sprintf($string, ...$args)
+			{
+				return $string . ': ' . implode(', ', $args);
 			}
 		}
 	}
@@ -287,13 +317,16 @@ namespace Joomla\CMS\Application {
 	defined('_JEXEC') or die;
 
 	/**
-	 * Only get() is declared: it is the one method the adapter and Preview call on the application.
+	 * Only get() and getIdentity() are declared: they are the methods the adapter and Preview call on the
+	 * application.
 	 */
 	if (!interface_exists(CMSApplicationInterface::class, false))
 	{
 		interface CMSApplicationInterface
 		{
 			public function get($name, $default = null);
+
+			public function getIdentity();
 		}
 	}
 }

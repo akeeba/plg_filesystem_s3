@@ -100,6 +100,7 @@ thumbnails.
 | `HarnessTest` | The adapters are registered; the seed is in place; the host's bucket view is read-only. |
 | `ListingTest` | Folders, files, metadata, single-file lookups, placeholder-less folders, >1,000-object pagination. |
 | `FileOperationsTest` | Create folder/file, content and headers, 409 without override, edit, copy, move, folder rename, delete (file, folder tree). |
+| `ErrorDisclosureTest` | Storage errors show only the S3 error code, except to a Super User with Site Debug on; the full error is logged, routine not-found probes are not. |
 | `FileNameSafetyTest` | New names (upload, folder, copy) are made safe exactly as the local adapter makes them; renames it would refuse are refused; edits and folder moves keep existing names. |
 | `PathContainmentTest` | Every operation with a `..` path is refused with 400, as the local adapter refuses it, and nothing outside the connection's Directory changes. |
 | `UploadPolicyTest` | The site's upload policy (forbidden extensions, MIME and XSS checks) refuses the same uploads and edits as core's local adapter, and nothing reaches the bucket. |

@@ -462,6 +462,59 @@ class S3FilesystemTest extends TestCase
 		$this->assertSame('https://storage.example.com/my-bucket/site/images/a/b/c.png', $url);
 	}
 
+	/**
+	 * @return array<string, array{0: bool, 1: bool, 2: bool}>
+	 */
+	public static function provideErrorAudiences(): array
+	{
+		return [
+			'user, debug off'       => [false, false, false],
+			'user, debug on'        => [true, false, false],
+			'Super User, debug off' => [false, true, false],
+			'Super User, debug on'  => [true, true, true],
+		];
+	}
+
+	/**
+	 * Storage errors show only a generic message, except to a Super User with Site Debug on (security.md, L1).
+	 *
+	 * No network: the cURL recorder fails every request, which akeeba/s3 reports with its usual message naming
+	 * the method, bucket and key.
+	 */
+	#[DataProvider('provideErrorAudiences')]
+	public function testStorageErrorsNameNoInternalsUnlessASuperUserDebugs(bool $debug, bool $superUser, bool $raw): void
+	{
+		$adapter = S3Filesystem::getFromConnection(array_merge(self::CUSTOM, ['bucket' => 'secret-bucket']), $this->app($debug, $superUser));
+
+		CurlRecorder::start();
+
+		try
+		{
+			$adapter->getResource('/private/key.png');
+			$this->fail('The request cannot succeed without a network.');
+		}
+		catch (\Akeeba\S3\Exception\CannotGetFile $e)
+		{
+			// The class is kept, so callers catching it behave the same.
+		}
+		finally
+		{
+			CurlRecorder::stop();
+		}
+
+		if ($raw)
+		{
+			$this->assertStringContainsString('secret-bucket', $e->getMessage());
+
+			return;
+		}
+
+		$this->assertStringStartsWith('PLG_FILESYSTEM_S3_ERR_STORAGE', $e->getMessage());
+		$this->assertStringNotContainsString('secret-bucket', $e->getMessage());
+		$this->assertStringNotContainsString('private/key.png', $e->getMessage());
+		$this->assertStringNotContainsString('Connector', $e->getMessage());
+	}
+
 	public function testSetsTheStorageClassHeaderOnlyForAmazon(): void
 	{
 		$method = new ReflectionMethod(S3Filesystem::class, 'getStorageTypeHeaders');
@@ -516,12 +569,30 @@ class S3FilesystemTest extends TestCase
 		(new ReflectionProperty(S3Filesystem::class, 'ec2Credentials'))->setValue(null, null);
 	}
 
-	private function app(): CMSApplicationInterface
+	private function app(bool $debug = false, bool $superUser = false): CMSApplicationInterface
 	{
-		return new class implements CMSApplicationInterface {
+		return new class($debug, $superUser) implements CMSApplicationInterface {
+			public function __construct(private bool $debug, private bool $superUser)
+			{
+			}
+
 			public function get($name, $default = null)
 			{
-				return $default;
+				return $name === 'debug' ? $this->debug : $default;
+			}
+
+			public function getIdentity()
+			{
+				return new class($this->superUser) {
+					public function __construct(private bool $superUser)
+					{
+					}
+
+					public function authorise($action, $asset = null)
+					{
+						return $this->superUser && $action === 'core.admin';
+					}
+				};
 			}
 		};
 	}
