@@ -10,6 +10,7 @@ namespace Akeeba\Plugin\Filesystem\S3\IntegrationTest\Tests;
 defined('_JEXEC') or die;
 
 use Akeeba\Plugin\Filesystem\S3\IntegrationTest\AbstractE2ETestCase;
+use Akeeba\Plugin\Filesystem\S3\IntegrationTest\Engine\Database;
 use Akeeba\Plugin\Filesystem\S3\IntegrationTest\SiteProvisioner;
 
 /**
@@ -105,5 +106,56 @@ class CachingTest extends AbstractE2ETestCase
 		$this->assertApiSuccess($this->media()->get(self::CACHED, '/fixtures'));
 
 		$this->assertDirectoryExists(static::$config->getSiteRoot() . '/administrator/cache/plg_filesystem_s3');
+	}
+
+	/**
+	 * The cache is shared by every user, so the dates it holds must not be formatted for whoever filled it
+	 * (security.md, I9).
+	 */
+	public function testFormattedDatesFollowTheUserReadingTheCache(): void
+	{
+		$db     = new Database(static::$config);
+		$params = $db->value(
+			"SELECT `params` FROM `#__users` WHERE `username` = :u", ['u' => SiteProvisioner::VIEWER_USERNAME]
+		);
+
+		$db->query(
+			"UPDATE `#__users` SET `params` = :p WHERE `username` = :u",
+			['p' => '{"timezone":"Asia/Tokyo"}', 'u' => SiteProvisioner::VIEWER_USERNAME]
+		);
+
+		try
+		{
+			// Control: without the cache, the viewer's dates are in the viewer's timezone
+			$uncached = $this->entry(
+				$this->assertApiSuccess($this->media($this->viewer())->get(SiteProvisioner::ADAPTER_V2, '/fixtures')),
+				'hello.txt'
+			);
+			$this->assertSame(
+				(new \DateTimeImmutable($uncached['modified_date']))->setTimezone(new \DateTimeZone('Asia/Tokyo'))->format('Y-m-d H:i'),
+				$uncached['modified_date_formatted'],
+				'Control: the viewer\'s timezone applies at all.'
+			);
+
+			// The Super User (site timezone: UTC) fills the cache
+			$this->assertApiSuccess($this->media()->get(SiteProvisioner::ADAPTER_CACHED, '/fixtures'));
+
+			$listing = $this->assertApiSuccess($this->media($this->viewer())->get(SiteProvisioner::ADAPTER_CACHED, '/fixtures'));
+			$file    = $this->entry($listing, 'hello.txt');
+
+			$expected = (new \DateTimeImmutable($file['modified_date']))
+				->setTimezone(new \DateTimeZone('Asia/Tokyo'))
+				->format('Y-m-d H:i');
+
+			$this->assertSame($expected, $file['modified_date_formatted'], 'Formatted for the viewer (Asia/Tokyo).');
+			$this->assertSame($expected, $file['create_date_formatted']);
+		}
+		finally
+		{
+			$db->query(
+				"UPDATE `#__users` SET `params` = :p WHERE `username` = :u",
+				['p' => $params, 'u' => SiteProvisioner::VIEWER_USERNAME]
+			);
+		}
 	}
 }

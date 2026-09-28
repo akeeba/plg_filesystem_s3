@@ -1014,7 +1014,7 @@ class S3Filesystem implements AdapterInterface
 
 				if ($singularFile->type === 'file')
 				{
-					return [$singularFile];
+					return [$this->formatDates($singularFile)];
 				}
 			}
 			catch (Exception $e)
@@ -1068,7 +1068,7 @@ class S3Filesystem implements AdapterInterface
 			$this->getCacheId($path, 'bucket')
 		);
 
-		return $listing;
+		return array_map([$this, 'formatDates'], $listing);
 	}
 
 	/**
@@ -1440,6 +1440,33 @@ class S3Filesystem implements AdapterInterface
 		if (($type === 'file') && $this->preview->shouldPreview($obj->path, $this->isCDN))
 		{
 			$obj->thumb_path = $this->preview->getResized($this->getUrl($obj->path), $date ?? null, $this->application);
+		}
+
+		return $obj;
+	}
+
+	/**
+	 * Formats a file or folder object's dates for the current user.
+	 *
+	 * Listings are cached for every user alike, so the dates in them must be formatted after the cache is read, in
+	 * the timezone and language of whoever is reading, not of whoever filled the cache.
+	 *
+	 * @param   object  $obj  An object made by dirListingToJoomlaObject()
+	 *
+	 * @return  object  A copy, with its *_formatted dates for the current user
+	 *
+	 * @since   1.4.0
+	 */
+	private function formatDates(object $obj): object
+	{
+		$obj = clone $obj;
+
+		if (!empty($obj->modified_date))
+		{
+			$formatted = HTMLHelper::_('date', new Date($obj->modified_date), Text::_('DATE_FORMAT_LC5'));
+
+			$obj->create_date_formatted   = $formatted;
+			$obj->modified_date_formatted = $formatted;
 		}
 
 		return $obj;
