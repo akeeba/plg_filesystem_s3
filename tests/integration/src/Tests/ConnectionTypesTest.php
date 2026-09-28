@@ -70,6 +70,27 @@ class ConnectionTypesTest extends AbstractE2ETestCase
 		$this->bucket()->removePrefix(SiteProvisioner::NESTED_DIRECTORY . "/$s/");
 	}
 
+	/**
+	 * A v4 connection whose region is set to "Custom" signs for the custom region (known issue #4). It used to
+	 * sign for a region literally named "custom", so every request failed.
+	 */
+	public function testAV4ConnectionWithACustomRegionWorks(): void
+	{
+		$params      = json_decode(static::$fixtures->readPluginParams(), true);
+		$connections = $params['connections'];
+		$v4          = array_values(array_filter($connections, fn(array $c) => $c['label'] === 'v4path'))[0];
+
+		$connections['connectionsCustomRegion'] = array_merge(
+			$v4, ['label' => 'customregion', 'region' => 'custom', 'custom_region' => 'us-east-1']
+		);
+
+		$this->setPluginParams(['connections' => $connections]);
+
+		$listing = $this->assertApiSuccess($this->media()->get('s3-customregion', '/fixtures'));
+
+		$this->assertContains('hello.txt', $this->names($listing));
+	}
+
 	public function testWrongCredentialsFailLoudlyWithoutLeakingTheSecret(): void
 	{
 		$response = $this->media()->get(SiteProvisioner::ADAPTER_BAD, '/');

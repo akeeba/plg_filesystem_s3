@@ -558,6 +558,31 @@ class S3FilesystemTest extends TestCase
 		}
 	}
 
+	/**
+	 * v4 connections to S3-compatible services sign for their region (known issue #12). akeeba/s3 once emptied the
+	 * region whenever a custom endpoint was set, and services which check the region refused every request.
+	 */
+	public function testV4CustomEndpointRequestsAreSignedForTheRegion(): void
+	{
+		$adapter = $this->adapter(['signature' => 'v4', 'region' => 'eu-central-1']);
+		$request = new Request('HEAD', $this->getPrivate($adapter, 'bucket'), '/x.png', $this->configuration($adapter));
+
+		CurlRecorder::start();
+
+		try
+		{
+			$request->getResponse();
+		}
+		finally
+		{
+			CurlRecorder::stop();
+		}
+
+		$authorization = array_values(preg_grep('/^Authorization:/i', CurlRecorder::option(CURLOPT_HTTPHEADER) ?? []))[0] ?? '';
+
+		$this->assertMatchesRegularExpression('#Credential=AKIAEXAMPLE/\d{8}/eu-central-1/s3/aws4_request#', $authorization);
+	}
+
 	public function testSetsTheStorageClassHeaderOnlyForAmazon(): void
 	{
 		$method = new ReflectionMethod(S3Filesystem::class, 'getStorageTypeHeaders');

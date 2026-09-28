@@ -78,6 +78,8 @@ services:
     environment:
       MINIO_ROOT_USER: "${S3_ACCESS_KEY:-s3fse2eaccess}"
       MINIO_ROOT_PASSWORD: "${S3_SECRET_KEY:-s3fse2esecret}"
+      # Like Amazon S3, refuse requests signed (v4) for any other region.
+      MINIO_SITE_REGION: "us-east-1"
     ports:
       - "127.0.0.1:${S3_PORT:-9190}:9000"
     healthcheck:

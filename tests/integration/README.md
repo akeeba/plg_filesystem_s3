@@ -54,7 +54,7 @@ enforces them from. It also refuses a PHP version older than the Joomla package 
 | `db` | MySQL 8.4 | `33319` |
 | `php` | PHP-FPM with Joomla and the Joomla CLI | — |
 | `web` | Apache 2.4, FastCGI to `php` | `8190` |
-| `minio` | MinIO, the S3 server every connection points at (`http://minio:9000` inside the network) | `9190` |
+| `minio` | MinIO, the S3 server every connection points at (`http://minio:9000` inside the network). Its site region is `us-east-1`, so like Amazon S3 it refuses v4 requests signed for any other region | `9190` |
 | `mc` | MinIO client, one-shot (`docker compose run --rm mc …`), full credentials | — |
 
 The ports avoid every sibling harness under `~/Projects` (8080–8180, 33306–33316, 33406).
