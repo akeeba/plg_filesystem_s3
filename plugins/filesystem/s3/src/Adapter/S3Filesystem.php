@@ -1332,7 +1332,11 @@ class S3Filesystem implements AdapterInterface
 	private function copyObject(string $bucket, string $from, string $to, string $acl = Acl::ACL_PUBLIC_READ, $storageClass = StorageClass::STANDARD): void
 	{
 		$request = new Request('PUT', $bucket, $to, $this->connector->getConfiguration());
-		$request->setAmzHeader('x-amz-copy-source', $bucket . '/' . $from);
+		/**
+		 * S3 URL-decodes this header, and reads a `?versionId=` from it. Encode it like akeeba/s3 encodes request
+		 * paths, so the object copied is exactly the one named, whatever its key contains.
+		 */
+		$request->setAmzHeader('x-amz-copy-source', $bucket . '/' . str_replace('%2F', '/', rawurlencode($from)));
 		$request->setAmzHeader('x-amz-acl', $acl);
 		$request->setAmzHeader('x-amz-storage-class', $storageClass);
 		$response = $request->getResponse();

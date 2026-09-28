@@ -11,6 +11,7 @@ defined('_JEXEC') or die;
 
 use Akeeba\Plugin\Filesystem\S3\IntegrationTest\AbstractE2ETestCase;
 use Akeeba\Plugin\Filesystem\S3\IntegrationTest\SiteProvisioner;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * Creating, updating, copying, moving and deleting through the Media Manager, with every effect checked
@@ -99,6 +100,42 @@ class FileOperationsTest extends AbstractE2ETestCase
 		$this->assertSame(self::ADAPTER . ":/$s/sub/dupe.txt", $data['path']);
 		$this->assertSame("original\n", $this->bucket()->get("$s/orig.txt")->body);
 		$this->assertSame("original\n", $this->bucket()->get("$s/sub/dupe.txt")->body);
+	}
+
+	/**
+	 * Source names that only exist when another tool wrote them: Joomla itself would have made them safe.
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public static function provideSourceNamesNeedingEncoding(): array
+	{
+		return [
+			'percent and plus' => ['a+b%20c.txt'],
+			'question mark'    => ['what?versionId=x.txt'],
+			'non-ASCII'        => ['φωτό.txt'],
+		];
+	}
+
+	/**
+	 * The copy source is sent URL-encoded, so S3 copies exactly the object that was named (security.md, L8).
+	 */
+	#[DataProvider('provideSourceNamesNeedingEncoding')]
+	public function testCopyingAndMovingCopyExactlyTheNamedObject(string $name): void
+	{
+		$s = $this->scratch();
+
+		// Decoys: what a decoded, unencoded copy source would name instead.
+		$this->bucket()->put("$s/src/a+b c.txt", "decoy 1\n");
+		$this->bucket()->put("$s/src/a b c.txt", "decoy 2\n");
+		$this->bucket()->put("$s/src/what", "decoy 3\n");
+		$this->bucket()->put("$s/src/$name", "the real one\n");
+
+		$this->assertApiSuccess($this->media()->copy(self::ADAPTER, "/$s/src/$name", "/$s/copied.txt"));
+		$this->assertSame("the real one\n", $this->bucket()->get("$s/copied.txt")->body);
+
+		$this->assertApiSuccess($this->media()->move(self::ADAPTER, "/$s/src/$name", "/$s/moved.txt"));
+		$this->assertSame("the real one\n", $this->bucket()->get("$s/moved.txt")->body);
+		$this->assertNotContains("$s/src/$name", $this->bucket()->keys($s), 'The source must be gone after a move.');
 	}
 
 	public function testMovingAFileRemovesTheOriginal(): void
