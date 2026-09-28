@@ -49,8 +49,6 @@ class PublicUrlTest extends AbstractE2ETestCase
 	{
 		$url = $this->urlOf(SiteProvisioner::ADAPTER_V4, '/fixtures/hello.txt');
 
-		$this->knownBug('v4-url-virtual-host');
-
 		$this->assertSame('minio', parse_url($url, PHP_URL_HOST));
 		$this->assertSame('/' . $this->bucket()->getName() . '/fixtures/hello.txt', parse_url($url, PHP_URL_PATH));
 	}

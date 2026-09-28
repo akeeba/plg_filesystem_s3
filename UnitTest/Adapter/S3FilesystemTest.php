@@ -337,11 +337,7 @@ class S3FilesystemTest extends TestCase
 	 */
 	public function testThePublicUrlHonoursPathStyleAccessWithV4Signatures(): void
 	{
-		$this->markTestSkipped(
-			'KNOWN BUG: with v4 signatures, getUrl() builds a pre-signed URL, and akeeba/s3 V4::getAuthenticatedURL() '
-			. 'always moves a valid bucket name into the hostname (bucket.endpoint), ignoring path-style access.'
-		);
-
+		// akeeba/s3 once moved the bucket into the hostname here, ignoring path-style access (known issue #2).
 		$url = $this->adapter(['signature' => 'v4'])->getUrl('/x.png');
 
 		$this->assertSame('https://storage.example.com/my-bucket/x.png', $url);

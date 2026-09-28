@@ -44,8 +44,6 @@ abstract class AbstractE2ETestCase extends TestCase
 	 *   S3FS_E2E_IGNORE_KNOWN_BUGS=1: nothing is skipped, and each test shows the real behaviour.
 	 */
 	protected const KNOWN_BUGS = [
-		'v4-url-virtual-host'  => '(known-issues.md #2) With v4 signatures getUrl() moves the bucket into the hostname '
-			. '(bucket.endpoint), ignoring path-style access; the URL does not resolve.',
 		'delete-no-placeholder' => '(known-issues.md #3) delete() HEADs the folder placeholder first and 404s when the '
 			. 'folder was created outside Joomla (no placeholder object).',
 		'url-forced-https'     => '(known-issues.md #5) getUrl() always asks akeeba/s3 for an https:// URL, so a '
