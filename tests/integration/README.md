@@ -125,10 +125,6 @@ without editing anything:
 S3FS_E2E_IGNORE_KNOWN_BUGS=1 phpunit -c phpunit-integration.xml
 ```
 
-Beware of `SearchTest::testSearchingALargeFolderFinishes` in that mode. Until known issue #1 is fixed,
-it hangs for the client's 60-second timeout, and the PHP-FPM worker keeps looping until PHP's
-`max_execution_time` (300 s).
-
 Every known-bug test was checked to fail without its skip, so none can pass by accident.
 
 ## The version matrix

@@ -44,8 +44,6 @@ abstract class AbstractE2ETestCase extends TestCase
 	 *   S3FS_E2E_IGNORE_KNOWN_BUGS=1: nothing is skipped, and each test shows the real behaviour.
 	 */
 	protected const KNOWN_BUGS = [
-		'search-pagination'    => '(known-issues.md #1) search() pages with a marker taken from the FILTERED results; past '
-			. '1,000 objects it re-fetches the same page forever.',
 		'v4-url-virtual-host'  => '(known-issues.md #2) With v4 signatures getUrl() moves the bucket into the hostname '
 			. '(bucket.endpoint), ignoring path-style access; the URL does not resolve.',
 		'delete-no-placeholder' => '(known-issues.md #3) delete() HEADs the folder placeholder first and 404s when the '

@@ -1276,7 +1276,17 @@ class S3Filesystem implements AdapterInterface
 				break;
 			}
 
-			$count      = count($sublisting);
+			$count = count($sublisting);
+
+			/**
+			 * The next page starts after the last key S3 returned, matching or not. Compared as strings: max() would
+			 * compare numeric-looking keys as numbers.
+			 */
+			$lastKey = array_reduce(
+				array_map('strval', array_keys($sublisting)),
+				fn(?string $carry, string $key) => ($carry === null || strcmp($key, $carry) > 0) ? $key : $carry
+			);
+
 			$sublisting = array_map(function ($raw) use ($dirPrefix) {
 				return $this->dirListingToJoomlaObject($raw, $dirPrefix);
 			}, $sublisting);
@@ -1291,8 +1301,7 @@ class S3Filesystem implements AdapterInterface
 				break;
 			}
 
-			$filenames = array_keys($sublisting);
-			$marker    = array_pop($filenames);
+			$marker = $lastKey;
 		} while (true);
 
 		return $listing;

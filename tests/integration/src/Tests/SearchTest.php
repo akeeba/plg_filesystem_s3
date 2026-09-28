@@ -51,14 +51,13 @@ class SearchTest extends AbstractE2ETestCase
 	}
 
 	/**
-	 * Without the fix this request loops server-side until PHP's max_execution_time; the client gives up
-	 * after 60 seconds. It is skipped BEFORE the objects are uploaded and the request is made, so a known
-	 * bug costs nothing.
+	 * Searching pages through the folder 1,000 keys at a time. Before known issue #1 was fixed, the next page
+	 * started after the last MATCH: with no match on a full page it re-fetched the first page forever (the
+	 * client gave up after 60 seconds, PHP carried on until max_execution_time), and with one, pages
+	 * overlapped.
 	 */
 	public function testSearchingALargeFolderFinishes(): void
 	{
-		$this->knownBug('search-pagination');
-
 		$objects = ['zz-needle.txt' => "needle\n"];
 
 		for ($i = 1; $i <= 1005; $i++)
@@ -68,12 +67,16 @@ class SearchTest extends AbstractE2ETestCase
 
 		$this->bucket()->putMany($this->scratch() . '/big', $objects);
 
-		$started = microtime(true);
-		$found   = $this->assertApiSuccess(
-			$this->media()->get(self::ADAPTER, '/' . $this->scratch() . '/big', ['search' => 'zz-needle.txt', 'recursive' => 0])
-		);
+		// A match on the last page, on the first page, and no match at all: each found once, never looping.
+		foreach (['zz-needle.txt' => ['zz-needle.txt'], 'file-0005.txt' => ['file-0005.txt'], 'nothing.txt' => []] as $needle => $expected)
+		{
+			$started = microtime(true);
+			$found   = $this->assertApiSuccess(
+				$this->media()->get(self::ADAPTER, '/' . $this->scratch() . '/big', ['search' => $needle, 'recursive' => 0])
+			);
 
-		$this->assertSame(['zz-needle.txt'], $this->names($found));
-		$this->assertLessThan(30, microtime(true) - $started);
+			$this->assertSame($expected, $this->names($found), "Searching for $needle");
+			$this->assertLessThan(30, microtime(true) - $started, "Searching for $needle");
+		}
 	}
 }
