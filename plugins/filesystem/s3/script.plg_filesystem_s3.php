@@ -25,6 +25,30 @@ class plgFilesystemS3InstallerScript extends InstallerScript
 
 	protected $allowDowngrades = true;
 
+	/**
+	 * Files older versions shipped and this one does not. Joomla never removes files dropped from a folder the
+	 * manifest lists, so they are deleted on install and update.
+	 *
+	 * @var   string[]
+	 * @since 1.4.0
+	 */
+	protected $deleteFiles = [
+		// Removed in 1.1.1: the Access Key and Secret Key validation rules
+		'/plugins/filesystem/s3/src/Rule/AccessKeyRule.php',
+		'/plugins/filesystem/s3/src/Rule/SecretKeyRule.php',
+	];
+
+	/**
+	 * Folders older versions shipped and this one does not.
+	 *
+	 * @var   string[]
+	 * @since 1.4.0
+	 */
+	protected $deleteFolders = [
+		// Removed in 1.1.0: the bundled S3 library, now the akeeba/s3 Composer dependency
+		'/plugins/filesystem/s3/src/Library',
+	];
+
 	public function preflight($type, $parent)
 	{
 		if (!parent::preflight($type, $parent))
@@ -131,6 +155,8 @@ class plgFilesystemS3InstallerScript extends InstallerScript
 				@clearstatcache(JPATH_CACHE . '/autoload_psr4.php');
 			}
 		}
+
+		$this->removeFiles();
 
 		$this->invalidateFiles();
 
