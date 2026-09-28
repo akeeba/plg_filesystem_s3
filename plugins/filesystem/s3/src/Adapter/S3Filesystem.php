@@ -1284,6 +1284,15 @@ class S3Filesystem implements AdapterInterface
 	 */
 	public function search(string $path, string $needle, bool $recursive = false): array
 	{
+		// As in Joomla's local adapter: the search term is part of a file name, never a path
+		if (preg_match('#[/\\\\]#', $needle) || str_contains($needle, '..'))
+		{
+			throw new InvalidPathException(Text::_('COM_MEDIA_ERROR'));
+		}
+
+		// …matched anywhere in the name, with glob metacharacters matched literally
+		$pattern = '*' . addcslashes($needle, '*?[]{}\\') . '*';
+
 		$path      = $this->checkPath($path);
 		$dirPrefix = $this->directory . (empty($this->directory) ? '' : '/');
 		$path      = trim($path, '/');
@@ -1318,8 +1327,8 @@ class S3Filesystem implements AdapterInterface
 			$sublisting = array_map(function ($raw) use ($dirPrefix) {
 				return $this->dirListingToJoomlaObject($raw, $dirPrefix);
 			}, $sublisting);
-			$sublisting = array_filter($sublisting, function ($item) use ($needle) {
-				return fnmatch($needle, $item->name);
+			$sublisting = array_filter($sublisting, function ($item) use ($pattern) {
+				return fnmatch($pattern, $item->name);
 			});
 
 			$listing = array_merge($listing, $sublisting);

@@ -583,6 +583,81 @@ class S3FilesystemTest extends TestCase
 		$this->assertMatchesRegularExpression('#Credential=AKIAEXAMPLE/\d{8}/eu-central-1/s3/aws4_request#', $authorization);
 	}
 
+	/**
+	 * Search works like Joomla's local adapter (known issue #6): the term matches anywhere in the name, and glob
+	 * metacharacters in it are literal. com_media filters the term with getCmd() before it gets here; these guard
+	 * the adapter itself.
+	 *
+	 * @return array<string, array{0: string, 1: string[]}>
+	 */
+	public static function provideSearchTerms(): array
+	{
+		return [
+			'part of a name'      => ['ell', ['hello']],
+			'the whole name'      => ['other', ['other']],
+			'a literal asterisk'  => ['*', ['h*llo']],
+			'a literal question'  => ['h?llo', []],
+			'literal brackets'    => ['[h]', []],
+		];
+	}
+
+	#[DataProvider('provideSearchTerms')]
+	public function testSearchMatchesPartOfTheNameLiterally(string $needle, array $expected): void
+	{
+		// Folders only: they are listed as common prefixes, with no date or thumbnail to work out.
+		$listing = '<?xml version="1.0" encoding="UTF-8"?><ListBucketResult><Name>my-bucket</Name><Prefix>dir/</Prefix>'
+			. '<Marker></Marker><MaxKeys>1000</MaxKeys><Delimiter>/</Delimiter><IsTruncated>false</IsTruncated>'
+			. '<CommonPrefixes><Prefix>dir/hello/</Prefix></CommonPrefixes>'
+			. '<CommonPrefixes><Prefix>dir/h*llo/</Prefix></CommonPrefixes>'
+			. '<CommonPrefixes><Prefix>dir/other/</Prefix></CommonPrefixes></ListBucketResult>';
+
+		CurlRecorder::start();
+		CurlRecorder::respond(200, ['Content-Type' => 'application/xml'], $listing);
+
+		try
+		{
+			$found = $this->adapter()->search('/dir', $needle);
+		}
+		finally
+		{
+			CurlRecorder::stop();
+		}
+
+		$names = array_column($found, 'name');
+		sort($names);
+
+		$this->assertSame($expected, $names);
+	}
+
+	/**
+	 * @return array<string, array{0: string}>
+	 */
+	public static function providePathLikeSearchTerms(): array
+	{
+		return [
+			'slash'      => ['a/b'],
+			'backslash'  => ['a\\b'],
+			'double dot' => ['..'],
+		];
+	}
+
+	#[DataProvider('providePathLikeSearchTerms')]
+	public function testASearchTermWithAPathIsRefused(string $needle): void
+	{
+		$this->expectException(InvalidPathException::class);
+
+		CurlRecorder::start();
+
+		try
+		{
+			$this->adapter()->search('/dir', $needle);
+		}
+		finally
+		{
+			CurlRecorder::stop();
+		}
+	}
+
 	public function testSetsTheStorageClassHeaderOnlyForAmazon(): void
 	{
 		$method = new ReflectionMethod(S3Filesystem::class, 'getStorageTypeHeaders');

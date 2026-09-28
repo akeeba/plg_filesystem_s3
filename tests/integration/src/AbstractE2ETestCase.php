@@ -46,8 +46,6 @@ abstract class AbstractE2ETestCase extends TestCase
 	protected const KNOWN_BUGS = [
 		'url-forced-https'     => '(known-issues.md #5) getUrl() always asks akeeba/s3 for an https:// URL, so a '
 			. 'plain-HTTP custom endpoint gets URLs it cannot serve.',
-		'search-exact-name'    => '(known-issues.md #6) search() uses fnmatch($needle, $name): exact whole-name '
-			. 'matches only, unlike the local adapter\'s *needle* substring search.',
 	];
 
 	protected static Configuration $config;

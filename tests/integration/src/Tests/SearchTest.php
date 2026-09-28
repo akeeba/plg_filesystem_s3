@@ -41,8 +41,6 @@ class SearchTest extends AbstractE2ETestCase
 
 	public function testSearchMatchesPartOfTheName(): void
 	{
-		$this->knownBug('search-exact-name');
-
 		$found = $this->assertApiSuccess(
 			$this->media()->get(self::ADAPTER, '/fixtures', ['search' => 'hello', 'recursive' => 0])
 		);
