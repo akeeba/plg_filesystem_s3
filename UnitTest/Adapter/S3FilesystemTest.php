@@ -670,6 +670,17 @@ class S3FilesystemTest extends TestCase
 		}
 	}
 
+	/**
+	 * An Amazon path-style connection outside us-east-1 gets its region's endpoint in public URLs: the global
+	 * s3.amazonaws.com only serves us-east-1 buckets with the bucket in the path (akeeba/s3 ce87df8).
+	 */
+	public function testAnAmazonPathStyleUrlUsesTheRegionalEndpoint(): void
+	{
+		$url = $this->amazon(['region' => 'eu-west-1', 'pathaccess' => 'path', 'dualstack' => '0'])->getUrl('/x.png');
+
+		$this->assertSame('https://s3.eu-west-1.amazonaws.com/my-bucket/x.png', $url);
+	}
+
 	public function testSetsTheStorageClassHeaderOnlyForAmazon(): void
 	{
 		$method = new ReflectionMethod(S3Filesystem::class, 'getStorageTypeHeaders');
