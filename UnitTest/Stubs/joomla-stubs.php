@@ -340,6 +340,13 @@ namespace Joomla\Component\Media\Administrator\Exception {
 		{
 		}
 	}
+
+	if (!class_exists(InvalidPathException::class, false))
+	{
+		class InvalidPathException extends \Exception
+		{
+		}
+	}
 }
 
 namespace Joomla\Http {

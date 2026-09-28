@@ -7,6 +7,7 @@ Amazon S3 Filesystem for Joomla 1.4.0
 # [MEDIUM] S3 uploads ignored the Media Manager's upload restrictions (forbidden extensions, MIME and XSS checks)
 # [MEDIUM] File and folder names could contain quotes and HTML, enabling stored XSS when inserted with some editors
 # [MEDIUM] Custom region lookup typo (connection['$region'] → connection['custom_region']) broke the "Custom" region option
+# [LOW] Paths containing '..' reached S3 instead of being refused, unlike Joomla's own Media Manager
 # [LOW] Uppercase file extensions were not lowercased on upload, unlike Joomla's own Media Manager
 # [LOW] Dead code in custom endpoint protocol detection (':\' instead of '://'); defaulted to useSSL=true so no working configuration was affected
 # [LOW] Escape the Content-Disposition filename in createFile to neutralise quote / backslash / CR / LF

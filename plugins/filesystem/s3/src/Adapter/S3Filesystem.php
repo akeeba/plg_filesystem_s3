@@ -33,6 +33,7 @@ use Joomla\CMS\Language\Text;
 use Joomla\CMS\Uri\Uri;
 use Joomla\Component\Media\Administrator\Adapter\AdapterInterface;
 use Joomla\Component\Media\Administrator\Exception\FileNotFoundException;
+use Joomla\Component\Media\Administrator\Exception\InvalidPathException;
 use Joomla\Filesystem\File;
 use League\MimeTypeDetection\FinfoMimeTypeDetector;
 use RuntimeException;
@@ -577,6 +578,8 @@ class S3Filesystem implements AdapterInterface
 	 */
 	public function copy(string $sourcePath, string $destinationPath, bool $force = false): string
 	{
+		$sourcePath      = $this->checkPath($sourcePath);
+		$destinationPath = $this->checkPath($destinationPath);
 		$destinationPath = trim($destinationPath, '/');
 
 		$parts           = explode('/', $destinationPath);
@@ -642,6 +645,7 @@ class S3Filesystem implements AdapterInterface
 	 */
 	public function createFile(string $name, string $path, $data): string
 	{
+		$path = $this->checkPath($path);
 		$name = $this->makeSafeName($name);
 
 		$this->putFile($name, $path, $data);
@@ -738,6 +742,8 @@ class S3Filesystem implements AdapterInterface
 	 */
 	public function createFolder(string $name, string $path): string
 	{
+		$path = $this->checkPath($path);
+
 		// Amazon S3 does not have folders. Creating a one byte key whose name ends in "/" works as an empty folder.
 		$dummy = '.';
 		$input = Input::createFromData($dummy);
@@ -767,6 +773,7 @@ class S3Filesystem implements AdapterInterface
 	 */
 	public function delete(string $path)
 	{
+		$path = $this->checkPath($path);
 		$info = $this->getFile($path);
 
 		// Clear the cache for the parent path
@@ -866,7 +873,7 @@ class S3Filesystem implements AdapterInterface
 		 */
 
 		$dirPrefix = $this->directory . (empty($this->directory) ? '' : '/');
-		$path      = ltrim($path, '/');
+		$path      = ltrim($this->checkPath($path), '/');
 		$path      = $dirPrefix . $path;
 
 		$isDir = substr($path, -1) === '/';
@@ -976,6 +983,8 @@ class S3Filesystem implements AdapterInterface
 		 * provide integration in any software at all, ever.
 		 */
 
+		$path = $this->checkPath($path);
+
 		if (!empty(trim($path, '/')))
 		{
 			try
@@ -1059,6 +1068,7 @@ class S3Filesystem implements AdapterInterface
 	 */
 	public function getResource(string $path)
 	{
+		$path              = $this->checkPath($path);
 		$tempPath          = $this->application->get('tmp_path', sys_get_temp_dir());
 		$tempName          = tempnam($tempPath, 'jmes3_');
 		$this->tempFiles[] = $tempName;
@@ -1083,6 +1093,8 @@ class S3Filesystem implements AdapterInterface
 	 */
 	public function getUrl(string $path): string
 	{
+		$path = $this->checkPath($path);
+
 		if ($this->isCDN)
 		{
 			return rtrim($this->cdnUrl, '/') . '/' . $this->getEncodedPath(ltrim($path, '/'));
@@ -1112,6 +1124,9 @@ class S3Filesystem implements AdapterInterface
 	 */
 	public function move(string $sourcePath, string $destinationPath, bool $force = false): string
 	{
+		$sourcePath      = $this->checkPath($sourcePath);
+		$destinationPath = $this->checkPath($destinationPath);
+
 		/**
 		 * Like Joomla's local adapter: refuse a new name that would have to be changed to be safe, rather than
 		 * silently changing it, except for the case of its extension.
@@ -1226,6 +1241,7 @@ class S3Filesystem implements AdapterInterface
 	 */
 	public function search(string $path, string $needle, bool $recursive = false): array
 	{
+		$path      = $this->checkPath($path);
 		$dirPrefix = $this->directory . (empty($this->directory) ? '' : '/');
 		$path      = trim($path, '/');
 		$path      = $dirPrefix . $path . '/';
@@ -1294,6 +1310,8 @@ class S3Filesystem implements AdapterInterface
 	 */
 	public function updateFile(string $name, string $path, $data)
 	{
+		$this->checkPath($path . '/' . $name);
+
 		// Updating and creating an object is the same in S3. The file keeps its name.
 		$this->putFile($name, $path, $data);
 	}
@@ -1441,6 +1459,29 @@ class S3Filesystem implements AdapterInterface
 		$headers['X-Amz-Storage-Class'] = $storageClass;
 
 		return $headers;
+	}
+
+	/**
+	 * Checks and cleans a path given to the adapter, exactly as Joomla's local adapter does (Path::check()).
+	 *
+	 * com_media passes paths through raw. Any `..` is refused, so no request can reach outside the connection's
+	 * Directory; backslashes are separators, and repeated separators collapse into one.
+	 *
+	 * @param   string  $path  The path, relative to the connection's root
+	 *
+	 * @return  string  The cleaned path
+	 *
+	 * @throws  InvalidPathException  When the path contains `..`
+	 * @since   1.4.0
+	 */
+	private function checkPath(string $path): string
+	{
+		if (strpos($path, '..') !== false)
+		{
+			throw new InvalidPathException('Use of relative paths not permitted');
+		}
+
+		return preg_replace('#[/\\\\]+#', '/', $path);
 	}
 
 	/**

@@ -14,6 +14,7 @@ use Akeeba\Plugin\Filesystem\S3\UnitTest\Stubs\CurlRecorder;
 use Akeeba\S3\Configuration;
 use Akeeba\S3\Request;
 use Joomla\CMS\Application\CMSApplicationInterface;
+use Joomla\Component\Media\Administrator\Exception\InvalidPathException;
 use Joomla\Http\HttpFactory;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -428,6 +429,37 @@ class S3FilesystemTest extends TestCase
 
 		$this->assertSame($verifyHost, CurlRecorder::option(CURLOPT_SSL_VERIFYHOST));
 		$this->assertTrue(CurlRecorder::option(CURLOPT_SSL_VERIFYPEER));
+	}
+
+	/**
+	 * Paths are checked like Joomla's local adapter checks them (Path::check()): any `..` is refused.
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public static function provideRelativePaths(): array
+	{
+		return [
+			'parent of the root'   => ['/../outside.png'],
+			'parent mid-path'      => ['/a/../../outside.png'],
+			'backslash separators' => ['/a\\..\\..\\outside.png'],
+			'double dot in a name' => ['/a..b.png'],
+		];
+	}
+
+	#[DataProvider('provideRelativePaths')]
+	public function testPathsWithDoubleDotsAreRefused(string $path): void
+	{
+		$this->expectException(InvalidPathException::class);
+
+		$this->adapter(['directory' => 'site/images'])->getUrl($path);
+	}
+
+	public function testPathsAreCleanedLikeTheLocalAdapterCleansThem(): void
+	{
+		// Backslashes are separators and repeated separators collapse, as with Path::clean().
+		$url = $this->adapter(['directory' => 'site/images'])->getUrl('//a\\\\b//c.png');
+
+		$this->assertSame('https://storage.example.com/my-bucket/site/images/a/b/c.png', $url);
 	}
 
 	public function testSetsTheStorageClassHeaderOnlyForAmazon(): void
