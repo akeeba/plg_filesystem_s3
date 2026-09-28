@@ -394,6 +394,12 @@ class Preview
 			return $url;
 		}
 
+		// Make sure the local cache folder exists before anything, including a failure marker, is written there.
+		if (!$this->makeCacheFolder(dirname($localPathName)))
+		{
+			return $url;
+		}
+
 		// Download the original image into temp storage.
 		try
 		{
@@ -406,6 +412,12 @@ class Preview
 			}
 
 			$tempFile = tempnam($tempDir, 'plgs3_');
+
+			if ($tempFile === false)
+			{
+				return $url;
+			}
+
 			file_put_contents($tempFile, $response->getBody());
 			unset($response);
 		}
@@ -419,12 +431,6 @@ class Preview
 		// Resize and return
 		try
 		{
-			// Make sure the local cache path exists
-			if (!@is_dir(dirname($localPathName)) && !@mkdir(dirname($localPathName), 0755, true))
-			{
-				return $url;
-			}
-
 			$image = new Image($tempFile);
 
 			$image = $image->resize($this->resizedDimension, $this->resizedDimension, false);
@@ -452,6 +458,43 @@ class Preview
 			}
 
 			@unlink($tempFile);
+		}
+	}
+
+	/**
+	 * Creates a folder of the local thumbnail cache, with an index.html in it and in every folder above it up to
+	 * the cache root, so that none can be listed where the web server allows directory listings.
+	 *
+	 * @param   string  $folder  Absolute path to the folder, inside the cache root
+	 *
+	 * @return  bool  True if the folder exists
+	 *
+	 * @since   1.4.0
+	 */
+	private function makeCacheFolder(string $folder): bool
+	{
+		$current  = JPATH_ROOT . '/media/plg_filesystem_s3/cache';
+		$relative = trim(substr($folder, strlen($current)), '/');
+		$segments = $relative === '' ? [] : explode('/', $relative);
+
+		while (true)
+		{
+			if (!@is_dir($current) && !@mkdir($current, 0755, true))
+			{
+				return false;
+			}
+
+			if (!@file_exists($current . '/index.html'))
+			{
+				@file_put_contents($current . '/index.html', "<!DOCTYPE html><title></title>\n");
+			}
+
+			if (empty($segments))
+			{
+				return true;
+			}
+
+			$current .= '/' . array_shift($segments);
 		}
 	}
 

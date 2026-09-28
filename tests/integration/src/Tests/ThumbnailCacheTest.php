@@ -94,9 +94,75 @@ class ThumbnailCacheTest extends AbstractE2ETestCase
 	{
 		$this->assertApiSuccess($this->media()->get(SiteProvisioner::ADAPTER_V2, '/fixtures'));
 
-		$this->knownBug('thumb-marker-warning');
-
 		$this->assertNoNewPluginPhpErrors();
+	}
+
+	/**
+	 * A failed download leaves an empty marker, so the next listing does not try again (security.md, L7).
+	 */
+	public function testAFailedThumbnailIsRemembered(): void
+	{
+		$this->assertApiSuccess($this->media()->get(SiteProvisioner::ADAPTER_V2, '/fixtures'));
+
+		$markers = array_filter($this->cachedFiles(), fn(string $file) => filesize($file) === 0);
+
+		$this->assertNotEmpty($markers, 'No "do not retry" marker was saved.');
+	}
+
+	/**
+	 * No cache folder may be listable where the web server allows directory listings (security.md, L7).
+	 */
+	public function testEveryCacheFolderHasAnIndexFile(): void
+	{
+		$this->thumbnailOf(SiteProvisioner::ADAPTER_CDN);
+
+		$root    = static::$config->getSiteRoot() . '/media/plg_filesystem_s3/cache';
+		$folders = [$root];
+		$items   = new \RecursiveIteratorIterator(
+			new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS), \RecursiveIteratorIterator::SELF_FIRST
+		);
+
+		foreach ($items as $item)
+		{
+			if ($item->isDir())
+			{
+				$folders[] = $item->getPathname();
+			}
+		}
+
+		$this->assertGreaterThan(1, count($folders), 'No thumbnail was cached.');
+
+		foreach ($folders as $folder)
+		{
+			$this->assertFileExists($folder . '/index.html');
+		}
+	}
+
+	/**
+	 * @return  string[]  The cached thumbnail files, markers included
+	 */
+	private function cachedFiles(): array
+	{
+		$root = static::$config->getSiteRoot() . '/media/plg_filesystem_s3/cache';
+
+		if (!is_dir($root))
+		{
+			return [];
+		}
+
+		clearstatcache();
+
+		$files = [];
+
+		foreach (new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS)) as $item)
+		{
+			if ($item->isFile() && $item->getExtension() === 'webp')
+			{
+				$files[] = $item->getPathname();
+			}
+		}
+
+		return $files;
 	}
 
 	private function thumbnailOf(string $adapter): string

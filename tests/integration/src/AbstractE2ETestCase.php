@@ -54,8 +54,6 @@ abstract class AbstractE2ETestCase extends TestCase
 			. 'plain-HTTP custom endpoint gets URLs it cannot serve.',
 		'search-exact-name'    => '(known-issues.md #6) search() uses fnmatch($needle, $name): exact whole-name '
 			. 'matches only, unlike the local adapter\'s *needle* substring search.',
-		'thumb-marker-warning' => '(known-issues.md #8) Preview writes its failed-download marker before creating the '
-			. 'cache folder: a PHP warning, and the failure is never remembered.',
 		'move-no-placeholder'  => '(known-issues.md #10) move() returns a mangled path for a folder with no placeholder '
 			. 'object, so com_media reports 404 although the objects were moved.',
 	];
