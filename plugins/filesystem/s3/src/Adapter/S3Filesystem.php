@@ -477,7 +477,8 @@ class S3Filesystem implements AdapterInterface
 			'isPathAccess'         => ($connection['pathaccess'] ?? '') === 'path',
 			'name'                 => $connection['label'] ?? null,
 			'acl'                  => $acl,
-			'region'               => $region === '' ? $customRegion : $region,
+			// The form saves "custom" for its Custom option; older settings may hold an empty string
+			'region'               => in_array($region, ['', 'custom'], true) ? trim($customRegion) : $region,
 			'secretKey'            => $secretKey,
 			'securityToken'        => $securityToken,
 			'signature'            => in_array($signature, ['v2', 'v4']) ? $signature : 'v4',

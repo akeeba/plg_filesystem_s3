@@ -177,14 +177,23 @@ class S3FilesystemTest extends TestCase
 	 * The region list's last option is `custom`, which reveals the free-text custom_region field. The
 	 * adapter only reads custom_region when region is the empty string — which the list never saves.
 	 */
-	public function testUsesTheCustomRegionWhenCustomIsSelected(): void
+	/**
+	 * The form saves region="custom" for its "Custom" option (known issue #4); older settings may hold ''.
+	 *
+	 * @return array<string, array{0: string}>
+	 */
+	public static function provideCustomRegionChoices(): array
 	{
-		$this->markTestSkipped(
-			'KNOWN BUG: S3Filesystem::getFromConnection() uses custom_region only when region === \'\', but s3.xml '
-			. 'saves region="custom"; the literal string "custom" is used as the region and v4 signing fails.'
-		);
+		return [
+			'"Custom", as the form saves it' => ['custom'],
+			'empty, as older settings hold'  => [''],
+		];
+	}
 
-		$config = $this->configuration($this->amazon(['region' => 'custom', 'custom_region' => 'xx-test-1']));
+	#[DataProvider('provideCustomRegionChoices')]
+	public function testUsesTheCustomRegionWhenCustomIsSelected(string $region): void
+	{
+		$config = $this->configuration($this->amazon(['region' => $region, 'custom_region' => 'xx-test-1']));
 
 		$this->assertSame('xx-test-1', $config->getRegion());
 	}
