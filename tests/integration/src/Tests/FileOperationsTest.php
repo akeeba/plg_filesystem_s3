@@ -231,8 +231,6 @@ class FileOperationsTest extends AbstractE2ETestCase
 
 		$this->assertSame(["$s/new/a.txt"], $this->bucket()->keys($s));
 
-		$this->knownBug('move-no-placeholder');
-
 		$this->assertApiSuccess($response);
 	}
 

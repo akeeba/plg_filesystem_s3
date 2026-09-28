@@ -1254,9 +1254,10 @@ class S3Filesystem implements AdapterInterface
 			}
 		}
 
+		// No placeholder object to move: return the destination path, as a real move does
 		if ($skipActualSource)
 		{
-			return basename($this->makeSafeName(rtrim($destinationPath, '/')));
+			return trim($destinationPath, '/');
 		}
 
 		// Amazon S3 doesn't have an atomic move/rename operation. We copy, then delete the source.
