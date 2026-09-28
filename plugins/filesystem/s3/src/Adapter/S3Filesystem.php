@@ -415,6 +415,12 @@ class S3Filesystem implements AdapterInterface
 
 		$configuration->setUseHTTPDateHeader($this->useHTTPDateHeader);
 
+		/**
+		 * With Site Debug on, akeeba/s3 adds a dump of the S3 error body to its messages (never the signed request).
+		 * Only a Super User sees it; everyone else gets the generic message, and the dump goes to the log.
+		 */
+		$configuration->setDebug((bool) $application->get('debug'));
+
 		// Return the new S3 client instance
 		$this->connector = new Connector($configuration);
 
@@ -1517,7 +1523,7 @@ class S3Filesystem implements AdapterInterface
 	 */
 	private function safeException(Throwable $e): Throwable
 	{
-		if (strpos(get_class($e), 'Akeeba\\S3\\Exception\\') !== 0 || $this->showRawErrors())
+		if (strpos(get_class($e), 'Akeeba\\S3\\Exception\\') !== 0)
 		{
 			return $e;
 		}
@@ -1535,6 +1541,11 @@ class S3Filesystem implements AdapterInterface
 		if ($status !== 404)
 		{
 			$this->logError($e);
+		}
+
+		if ($this->showRawErrors())
+		{
+			return $e;
 		}
 
 		$message = $label === null

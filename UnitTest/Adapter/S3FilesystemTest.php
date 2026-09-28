@@ -515,6 +515,44 @@ class S3FilesystemTest extends TestCase
 		$this->assertStringNotContainsString('Connector', $e->getMessage());
 	}
 
+	/**
+	 * A Super User with Site Debug on gets akeeba/s3's dump of the S3 error body, but never the signed request
+	 * Amazon echoes back on a signature error (security.md, L1). Guards against akeeba/s3 drifting.
+	 */
+	public function testTheDebugDumpShowsNoSignedRequest(): void
+	{
+		$adapter = S3Filesystem::getFromConnection(self::CUSTOM, $this->app(true, true));
+		$body    = '<?xml version="1.0" encoding="UTF-8"?><Error><Code>SignatureDoesNotMatch</Code>'
+			. '<Message>Signature mismatch.</Message><StringToSign>STRING-TO-SIGN-SECRET</StringToSign>'
+			. '<SignatureProvided>SIGNATURE-SECRET</SignatureProvided>'
+			. '<CanonicalRequest>PUT /x x-amz-security-token:SESSION-TOKEN-SECRET</CanonicalRequest>'
+			. '<RequestId>REQ123</RequestId></Error>';
+
+		CurlRecorder::start();
+		CurlRecorder::respond(403, ['Content-Type' => 'application/xml'], $body);
+
+		try
+		{
+			$adapter->createFolder('folder', '/');
+			$this->fail('The request cannot succeed.');
+		}
+		catch (\Akeeba\S3\Exception\CannotPutFile $e)
+		{
+		}
+		finally
+		{
+			CurlRecorder::stop();
+		}
+
+		$this->assertStringContainsString('Debug info', $e->getMessage());
+		$this->assertStringContainsString('REQ123', $e->getMessage());
+
+		foreach (['STRING-TO-SIGN-SECRET', 'SIGNATURE-SECRET', 'SESSION-TOKEN-SECRET', 'CanonicalRequest'] as $secret)
+		{
+			$this->assertStringNotContainsString($secret, $e->getMessage());
+		}
+	}
+
 	public function testSetsTheStorageClassHeaderOnlyForAmazon(): void
 	{
 		$method = new ReflectionMethod(S3Filesystem::class, 'getStorageTypeHeaders');

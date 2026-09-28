@@ -72,12 +72,27 @@ class ErrorDisclosureTest extends AbstractE2ETestCase
 
 	public function testTheFullErrorIsLogged(): void
 	{
-		$this->media()->get(SiteProvisioner::ADAPTER_BAD, '/');
+		// With Site Debug on, akeeba/s3 adds its dump of the S3 error body to upload errors.
+		$this->setSiteDebug(true);
 
-		[, $log] = (new ContainerCli(static::$config))->run(['cat', self::LOG_FILE]);
+		$logged = $this->loggedDuring(
+			fn() => $this->media()->createFile(SiteProvisioner::ADAPTER_BAD, '/' . $this->scratch(), 'x.txt', "x\n")
+		);
 
-		$this->assertStringContainsString('SignatureDoesNotMatch', $log);
-		$this->assertStringContainsString('Debug info', $log);
+		$this->assertStringContainsString('SignatureDoesNotMatch', $logged);
+		$this->assertStringContainsString('Debug info', $logged);
+	}
+
+	public function testWithoutSiteDebugTheErrorIsLoggedWithoutTheDump(): void
+	{
+		$this->setSiteDebug(false);
+
+		$logged = $this->loggedDuring(
+			fn() => $this->media()->createFile(SiteProvisioner::ADAPTER_BAD, '/' . $this->scratch(), 'x.txt', "x\n")
+		);
+
+		$this->assertStringContainsString('SignatureDoesNotMatch', $logged);
+		$this->assertStringNotContainsString('Debug info', $logged);
 	}
 
 	public function testRoutineNotFoundProbesAreNotLogged(): void
@@ -102,6 +117,20 @@ class ErrorDisclosureTest extends AbstractE2ETestCase
 		$this->assertSame(404, $response->code, $response->summary());
 		$this->assertStringNotContainsString($this->bucket()->getName(), $message);
 		$this->assertStringNotContainsString('Connector::', $message);
+	}
+
+	/**
+	 * What the plugin's log file gained while running this.
+	 */
+	private function loggedDuring(callable $action): string
+	{
+		$before = $this->logSize();
+
+		$action();
+
+		[, $log] = (new ContainerCli(static::$config))->run(['sh', '-c', 'cat ' . self::LOG_FILE . ' 2>/dev/null']);
+
+		return substr($log, $before);
 	}
 
 	private function logSize(): int
