@@ -35,6 +35,41 @@
 		</zipme>
 	</target>
 
+	<!--
+	Runs the unit and integration test suites, through `composer test`, which installs the Composer dependencies
+	first, so this works on a fresh checkout.
+	-->
+	<target name="test" description="Runs the unit and integration test suites">
+		<exec executable="composer"
+			  dir="${dirs.root}" checkreturn="true" passthru="true">
+			<arg value="test" />
+			<arg value="--no-interaction" />
+		</exec>
+	</target>
+
+	<!--
+	Runs the unit tests only. Needs PHP and PHPUnit 11 on PATH.
+	-->
+	<target name="test-unit" description="Runs the unit test suite only">
+		<exec executable="composer"
+			  dir="${dirs.root}" checkreturn="true" passthru="true">
+			<arg value="test:unit" />
+			<arg value="--no-interaction" />
+		</exec>
+	</target>
+
+	<!--
+	Runs the E2E tests only, against a disposable Docker stack (Joomla + MinIO) which the script builds and brings up
+	itself. Needs Docker.
+	-->
+	<target name="test-integration" description="Runs the E2E test suite only, against a Dockerised Joomla + MinIO">
+		<exec executable="composer"
+			  dir="${dirs.root}" checkreturn="true" passthru="true">
+			<arg value="test:integration" />
+			<arg value="--no-interaction" />
+		</exec>
+	</target>
+
 	<target name="release" depends="github-release">
 		<!-- Dependencies are enough -->
 	</target>

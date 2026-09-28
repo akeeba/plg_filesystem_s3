@@ -7,6 +7,10 @@ Two suites. The split between them is deliberate.
 | **Unit** | `phpunit.xml` | `UnitTest/` | PHP, PHPUnit, `composer install` | well under a second | is this logic correct in isolation? |
 | **Integration (E2E)** | `phpunit-integration.xml` | `tests/integration/` | Docker | a few minutes to provision, under a minute to run | does the real Media Manager, over real HTTP, against a real S3 server, do what it should and refuse what it should? |
 
+Both run with `composer test` (or `phing test`, which delegates to it); each on its own with `composer test:unit` /
+`composer test:integration` (`phing test-unit` / `phing test-integration`). Each first runs `composer install`, so
+they work on a fresh checkout.
+
 > The unit suite lives in `UnitTest/` at the **repository root**, not under `tests/`. `tests/` holds only
 > the integration suite. This matches the layout of the other Akeeba extensions.
 
