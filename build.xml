@@ -25,6 +25,12 @@
 		<zipme basedir="${plugin_dir}" destfile="${plugin_package}" includeemptydirs="true">
 			<fileset dir="${plugin_dir}">
 				<include name="**" />
+				<!-- Dependencies' development files: akeeba/s3 is installed from source, where its own archive
+				     excludes do not apply -->
+				<exclude name="vendor/akeeba/s3/minitest/**" />
+				<exclude name="vendor/**/rector.php" />
+				<exclude name="vendor/**/composer.lock" />
+				<exclude name="vendor/**/*.md" />
 			</fileset>
 		</zipme>
 	</target>

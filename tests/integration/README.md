@@ -100,6 +100,7 @@ thumbnails.
 | `HarnessTest` | The adapters are registered; the seed is in place; the host's bucket view is read-only. |
 | `ListingTest` | Folders, files, metadata, single-file lookups, placeholder-less folders, >1,000-object pagination. |
 | `FileOperationsTest` | Create folder/file, content and headers, 409 without override, edit, copy, move, folder rename, delete (file, folder tree). |
+| `PackageContentsTest` | The package this run built ships no dependency development files (akeeba/s3's `minitest/`, `rector.php`, `composer.lock`, Markdown), and everything the plugin needs. |
 | `UpdateCleanupTest` | Reinstalling the built package over files older releases shipped deletes them, and nothing current. |
 | `ErrorDisclosureTest` | Storage errors show only the S3 error code, except to a Super User with Site Debug on; the full error is logged, routine not-found probes are not. |
 | `FileNameSafetyTest` | New names (upload, folder, copy) are made safe exactly as the local adapter makes them; renames it would refuse are refused; edits and folder moves keep existing names. |
