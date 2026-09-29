@@ -72,6 +72,30 @@
 					"type": "variable",
 					"marker": "$maximumJoomla",
 					"value": "LIMIT_MAX"
+				},
+				{
+					"file": "plugins/filesystem/s3/services/provider.php",
+					"type": "variable",
+					"marker": "$minimumPhp",
+					"value": "PHP_MIN"
+				},
+				{
+					"file": "plugins/filesystem/s3/services/provider.php",
+					"type": "variable",
+					"marker": "$maximumPhp",
+					"value": "PHP_MAX"
+				},
+				{
+					"file": "plugins/filesystem/s3/services/provider.php",
+					"type": "variable",
+					"marker": "$minimumJoomla",
+					"value": "LIMIT_MIN"
+				},
+				{
+					"file": "plugins/filesystem/s3/services/provider.php",
+					"type": "variable",
+					"marker": "$maximumJoomla",
+					"value": "LIMIT_MAX"
 				}
 			]
 		}
