@@ -42,8 +42,11 @@ tests/integration/docker/run.sh --down             # tear everything down
 | `--down` | Scrub containers, volumes, the web root and generated config, then exit. |
 | `-- <args>` | Everything after `--` goes to PHPUnit verbatim. |
 
-`run.sh` **always scrubs first**, so a crashed previous run can never leak into the next one. It
-refuses a Joomla or PHP version outside the plugin's declared range *before* touching Docker. It reads
+`run.sh` **always scrubs first**, so a crashed previous run can never leak into the next one, and it
+tears the stack down — containers, network and the database volume — however the run ends: the suite
+finishing, a failed step, or Ctrl-C. Only `--keep-containers` and `--no-tests` leave it up. After a
+passing run `docker/www/` is deleted too; after a failure it is left for inspection, and the next run
+clears it. It refuses a Joomla or PHP version outside the plugin's declared range *before* touching Docker. It reads
 both bounds from `plugins/filesystem/s3/script.plg_filesystem_s3.php`, the same file the installer
 enforces them from. It also refuses a PHP version older than the Joomla package itself requires.
 
@@ -52,12 +55,20 @@ enforces them from. It also refuses a PHP version older than the Joomla package 
 | Service | What | Host port |
 |---|---|---|
 | `db` | MySQL 8.4 | `33319` |
-| `php` | PHP-FPM with Joomla and the Joomla CLI | — |
-| `web` | Apache 2.4, FastCGI to `php` | `8190` |
+| `php` | PHP-FPM with Joomla and the Joomla CLI (shared image `akeeba-e2e/php`) | — |
+| `web` | Apache 2.4, FastCGI to `php` (shared image `akeeba-e2e/web`) | `8190` |
 | `minio` | MinIO, the S3 server every connection points at (`http://minio:9000` inside the network). Its site region is `us-east-1`, so like Amazon S3 it refuses v4 requests signed for any other region | `9190` |
 | `mc` | MinIO client, one-shot (`docker compose run --rm mc …`), full credentials | — |
 
 The ports avoid every sibling harness under `~/Projects` (8080–8180, 33306–33316, 33406).
+
+The `php` and `web` images are not built here. They are the `akeeba-e2e/*` images every Akeeba E2E
+stack shares, defined in the sibling `buildfiles` repository under `docker/e2e/` (see its
+`README.md`); `run.sh` calls `../buildfiles/docker/e2e/images.sh ensure` for each before bringing the
+stack up. The plugin's own PHP settings, `docker/config/php.ini`, are bind-mounted into the `php`
+container; Apache uses the shared image's default vhost. The shared PHP image's gd has the WebP support
+the plugin's thumbnail cache needs (`Preview::canResizeImages()`). A PHP extension the suite needs goes
+into that shared image, never into a project-local Dockerfile.
 
 **How the tests see the bucket.** `run.sh` gives the host *anonymous, read-only* access to the test
 bucket (`docker/config/minio-anonymous-policy.json.tpl`). It checks that listing works and that an

@@ -7,14 +7,26 @@
 # Do not run this by hand. Use ./run.sh, which scrubs, provisions and tests in
 # one shot. This file only describes the services.
 #
+# The php and web images are the ones shared by every Akeeba E2E stack. They are built by
+# ../buildfiles/docker/e2e/images.sh — which run.sh calls before bringing the stack up — never by
+# this file, hence `pull_policy: never` and no `build:`. Everything specific to plg_filesystem_s3 is
+# bind-mounted into them: php.ini. The web image's default vhost is used as it is.
+#
+# Every service, the volume and the network carry the org.akeeba.e2e label, which is what the
+# scheduled ../buildfiles/docker/e2e/maintain.sh prunes by.
+#
 # There is deliberately no mail sink: the plugin sends no mail, and run.sh
 # switches Joomla's mailer off so nothing else tries to.
 
 name: s3filesystem-e2e
 
+x-e2e-labels: &e2e-labels
+  org.akeeba.e2e: "1"
+
 services:
   db:
     image: "mysql:${MYSQL_VERSION:-8.4}"
+    labels: *e2e-labels
     environment:
       MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:-root}"
       MYSQL_DATABASE: "${DB_NAME:-s3fse2e}"
@@ -34,15 +46,12 @@ services:
       retries: 40
 
   php:
-    build:
-      context: .
-      dockerfile: Dockerfile.php
-      args:
-        PHP_VERSION: "${PHP_VERSION:-8.5}"
-        PUID: "${PUID:-1000}"
-        PGID: "${PGID:-1000}"
+    image: "akeeba-e2e/php:${PHP_VERSION:-8.5}"
+    pull_policy: never
+    labels: *e2e-labels
     volumes:
       - ./www:/var/www/html
+      - ./config/php.ini:/usr/local/etc/php/conf.d/zz-e2e.ini:ro
     depends_on:
       db:
         condition: service_healthy
@@ -50,11 +59,9 @@ services:
         condition: service_healthy
 
   web:
-    build:
-      context: .
-      dockerfile: Dockerfile.web
-      args:
-        APACHE_VERSION: "${APACHE_VERSION:-2.4}"
+    image: "akeeba-e2e/web:${APACHE_VERSION:-2.4}"
+    pull_policy: never
+    labels: *e2e-labels
     ports:
       - "127.0.0.1:${HTTP_PORT:-8190}:80"
     volumes:
@@ -74,6 +81,7 @@ services:
   # object ACLs, so a bucket policy is its only way to make objects public.
   minio:
     image: "quay.io/minio/minio:${MINIO_VERSION:-RELEASE.2025-09-07T16-13-09Z}"
+    labels: *e2e-labels
     command: ["server", "/data"]
     environment:
       MINIO_ROOT_USER: "${S3_ACCESS_KEY:-s3fse2eaccess}"
@@ -95,6 +103,7 @@ services:
   mc:
     image: "quay.io/minio/mc:${MC_VERSION:-RELEASE.2025-08-13T08-35-41Z}"
     profiles: ["tools"]
+    labels: *e2e-labels
     environment:
       MC_HOST_e2e: "http://${S3_ACCESS_KEY:-s3fse2eaccess}:${S3_SECRET_KEY:-s3fse2esecret}@minio:9000"
     volumes:
@@ -104,5 +113,10 @@ services:
     depends_on:
       - minio
 
+networks:
+  default:
+    labels: *e2e-labels
+
 volumes:
   dbdata:
+    labels: *e2e-labels

@@ -141,7 +141,7 @@ final class SiteProvisioner
 	/**
 	 * Delete the plugin's S3 response cache and local thumbnails from the site.
 	 *
-	 * The web root is a bind mount owned by the host user (Dockerfile.php remaps www-data), so the host
+	 * The web root is a bind mount owned by the host user (the shared akeeba-e2e/php image remaps www-data), so the host
 	 * can simply delete them.
 	 */
 	public function clearPluginCaches(): void
