@@ -34,7 +34,7 @@ tests/integration/docker/run.sh --down             # tear everything down
 |---|---|
 | `-j`, `--joomla=VERSION` | Joomla to test: full (`6.1.3`), branch (`6.1`) or major (`6`). Default: `JOOMLA_VERSION` in `.env`. |
 | `-p`, `--php=VERSION` | PHP image tag, e.g. `8.1`. Default: `PHP_VERSION` in `.env`. |
-| `--matrix` | Run every Joomla/PHP pair in `JOOMLA_MATRIX`, each from a clean slate; build only once. |
+| `--matrix` | Run every Joomla/PHP pair in the committed `JOOMLA_MATRIX`, each from a clean slate; build only once. |
 | `-f`, `--filter=NAME` | Passed to PHPUnit as `--filter`. |
 | `--skip-build` | Do not run `phing git`; install the newest package in `release/`. |
 | `--keep-containers` | Leave the stack up after the tests. |
@@ -140,23 +140,34 @@ Every known-bug test was checked to fail without its skip, so none can pass by a
 
 ## The version matrix
 
-`JOOMLA_MATRIX` in `docker/env.dist` is `5.4:8.1,8.5 6.0:8.3,8.5 6.1:8.3,8.5`. These are the **edges**
-of the supported range, not a cross product.
+The Joomla/PHP environments are **committed, not configured**. `JOOMLA_MATRIX` lives in
+`docker/e2e/matrix` of the sibling `buildfiles` repository, shared by every Joomla project, and is
+currently:
+
+| Joomla | PHP | |
+|---|---|---|
+| 5.4 | 8.1 | The oldest Joomla and PHP this project supports |
+| 6 | 8.5 | The latest stable Joomla 6 (`6` resolves to it) on the newest PHP |
+
+They are deliberately not in `env.dist` or `.env`: `.env` is git-ignored and copied once, so anything in
+it goes stale and differs between machines. `run.sh` sources the committed files after `.env`, so a
+stale `.env` cannot shadow them. For a one-off, use `run.sh --joomla=6.0 --php=8.3`; to change what
+everybody tests, edit the committed file and let `audit-e2e-matrix` check the result.
 
 | Bound | Value | Where it comes from |
 |---|---|---|
 | Joomla floor | 5.4 | `$minimumJoomla = '5.4.0'` in the installer script (= `extra.akcompat.limit` in `composer.json`) |
-| Joomla ceiling | 6.1 today | `$maximumJoomla = '6.3'` (exclusive) allows 6.2, but 6.2 is not released yet; add `6.2:8.3,8.5` when it is |
+| Joomla ceiling | latest 6.x | `$maximumJoomla = '6.3'` (exclusive); `6` resolves to the newest stable release |
 | PHP floor | 8.1 (Joomla 5.4), 8.3 (Joomla 6.x) | the plugin's `$minimumPhp = '8.1.0'`; Joomla 6 itself requires 8.3 |
-| PHP ceiling | 8.5 | the plugin allows `<8.7`, but 8.5 is the newest stable `php:*-fpm` image; add 8.6 when it ships |
+| PHP ceiling | 8.5 | the plugin allows `<8.7`, but 8.5 is the newest stable `php:*-fpm` image; update the shared matrix when 8.6 ships |
 
 The plugin has no Joomla-version-specific code paths of its own. The matrix is there for the code it
 *leans on*, which does change between versions: the `com_media` API and adapter contract (the
 double-duty `getFile()` and `getFiles()` calls), `CallbackController` caching, `Image::toFile()`
 WebP output, and `Joomla\Http`. **PHP 8.1 on Joomla 5.4 is the matrix entry that matters most for the
 plugin's own code.** `composer.json` pins dependency resolution to PHP 8.1, and a 8.2+ construct
-anywhere in `src/` or `vendor/` would only fail there. A green default run (Joomla 6.1, PHP 8.5) says
-nothing about that combination; run `--matrix` before a release.
+anywhere in `src/` or `vendor/` would only fail there. A green default run (the latest Joomla 6, PHP 8.5)
+says nothing about that combination; run `--matrix` before a release.
 
 Keep the matrix current with the `audit-e2e-matrix` skill rather than editing versions by hand.
 
