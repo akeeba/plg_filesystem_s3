@@ -109,23 +109,25 @@ class ContainerCli
 	}
 
 	/**
-	 * Run the MinIO client (`mc`), with full credentials, as a one-shot container.
+	 * Run the AWS CLI (`aws`), with full credentials, as a one-shot container.
 	 *
-	 * The alias `e2e` points at the stack's MinIO. The host only ever gets anonymous, read-only access to
-	 * the bucket; anything that writes behind the plugin's back goes through here.
+	 * The `s3cli` service is pre-configured for the stack's Garage. The host only ever gets anonymous GET
+	 * access to the bucket's objects; anything that lists it or writes behind the plugin's back goes through
+	 * here.
 	 *
-	 * @param   string[]     $arguments  Arguments after `mc`, e.g. ['rm', '--recursive', '--force', 'e2e/bucket/x'].
-	 * @param   string|null  $stdin      Data for the command's standard input (e.g. for `mc pipe`).
+	 * @param   string[]     $arguments  Arguments after `aws`, e.g. ['s3', 'rm', '--recursive', 's3://bucket/x/'].
+	 * @param   string|null  $stdin      Data for the command's standard input (e.g. `s3 cp - s3://bucket/key`).
 	 *
 	 * @return  string  The combined output.
 	 * @throws  RuntimeException  When the command fails.
 	 */
-	public function mc(array $arguments, ?string $stdin = null): string
+	public function s3(array $arguments, ?string $stdin = null): string
 	{
 		$docker = $this->config->getDocker();
 		$parts  = array_merge(
 			explode(' ', $docker['bin']),
-			['-f', $docker['file'], 'run', '--rm', '-T', 'mc'],
+			// No progress lines: the output of a listing is parsed.
+			['--progress', 'quiet', '-f', $docker['file'], 'run', '--rm', '-T', '--no-deps', 's3cli'],
 			$arguments
 		);
 
@@ -137,7 +139,7 @@ class ContainerCli
 
 		if (!\is_resource($process))
 		{
-			throw new RuntimeException('Could not start `docker compose run mc`.');
+			throw new RuntimeException('Could not start `docker compose run s3cli`.');
 		}
 
 		fwrite($pipes[0], $stdin ?? '');
@@ -149,7 +151,7 @@ class ContainerCli
 		if ($exitCode !== 0)
 		{
 			throw new RuntimeException(
-				sprintf("`mc %s` failed (exit %d):\n%s", implode(' ', $arguments), $exitCode, $output)
+				sprintf("`aws %s` failed (exit %d):\n%s", implode(' ', $arguments), $exitCode, $output)
 			);
 		}
 

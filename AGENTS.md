@@ -15,7 +15,7 @@ Joomla 5/6 filesystem plugin (`plg_filesystem_s3`) that integrates Amazon S3 and
 - **Composer platform target**: PHP 8.1.0
 - **All tests**: `composer test` or `phing test` (both suites; installs the Composer dependencies first)
 - **Unit tests**: `composer test:unit` / `phing test-unit`, or plain `phpunit` (global PHPUnit 11; config `phpunit.xml`, tests in `UnitTest/`)
-- **E2E tests**: `composer test:integration` / `phing test-integration`, or `tests/integration/docker/run.sh` for its options (Docker: Joomla + MinIO; config `phpunit-integration.xml`). Read `tests/README.md` and `tests/integration/README.md` first
+- **E2E tests**: `composer test:integration` / `phing test-integration`, or `tests/integration/docker/run.sh` for its options (Docker: Joomla + Garage; config `phpunit-integration.xml`). Read `tests/README.md` and `tests/integration/README.md` first
 - **Known bugs** found by the suites are numbered in `known-issues.md` (git-ignored); their tests are skipped, not rewritten
 - Build config is imported from a sibling `../buildfiles/` repository (`common.xml`)
 

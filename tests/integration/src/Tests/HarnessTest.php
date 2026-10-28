@@ -31,7 +31,7 @@ class HarnessTest extends AbstractE2ETestCase
 
 		$this->assertNotEmpty($match, 'The s3 provider is not registered with the Media Manager.');
 		$this->assertSame(
-			['v2path', 'v4path', 'nested', 'cdn', 'cached', 'badsecret'],
+			['v4path', 'nested', 'cdn', 'cached', 'badsecret'],
 			json_decode($match[1], true),
 			'Every connection with a bucket is an adapter, in configuration order; "nobucket" is dropped.'
 		);

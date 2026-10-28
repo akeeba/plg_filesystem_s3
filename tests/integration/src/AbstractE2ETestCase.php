@@ -23,7 +23,7 @@ use PHPUnit\Framework\TestCase;
  *
  * Every test drives the plugin through Joomla's own Media Manager API over real HTTP, with a real
  * back-end session, against a real S3-compatible server. Effects are then checked in the bucket itself,
- * through MinIO's anonymous read-only view — never through the plugin's own account of what it did.
+ * through the bucket's anonymous GET view and the AWS CLI — never through the plugin's own account of what it did.
  *
  * Isolation: each test that writes gets its own scratch folder in the bucket ({@see scratch()}), removed
  * once the class is done. Tests may change the plugin's parameters; tearDown() always puts back the
@@ -81,14 +81,12 @@ abstract class AbstractE2ETestCase extends TestCase
 		if (self::$scratchPrefixes !== [])
 		{
 			$bucket = new Bucket(static::$config);
-			$args   = ['rm', '--recursive', '--force'];
 
+			// `aws s3 rm` takes one path at a time.
 			foreach (self::$scratchPrefixes as $prefix)
 			{
-				$args[] = 'e2e/' . $bucket->getName() . '/' . $prefix . '/';
+				(new ContainerCli(static::$config))->s3(['s3', 'rm', '--recursive', 's3://' . $bucket->getName() . '/' . $prefix . '/']);
 			}
-
-			(new ContainerCli(static::$config))->mc($args);
 
 			self::$scratchPrefixes = [];
 		}
@@ -213,7 +211,7 @@ abstract class AbstractE2ETestCase extends TestCase
 	/**
 	 * Change settings of one of the provisioned connections, by its label. tearDown() puts them back.
 	 *
-	 * @param   string                $label     The connection's label, e.g. 'v2path' for the s3-v2path adapter
+	 * @param   string                $label     The connection's label, e.g. 'v4path' for the s3-v4path adapter
 	 * @param   array<string, mixed>  $settings  Connection settings, as the plugin form saves them
 	 */
 	protected function setConnectionParams(string $label, array $settings): void

@@ -42,12 +42,12 @@ return [
 		'password'      => 'test',
 	],
 	's3'      => [
-		// MinIO as the host sees it (anonymous, read-only) and as the site sees it.
+		// The S3 endpoint as the host sees it (anonymous GET only) and as the site sees it.
 		'publicUrl'        => 'http://localhost:9190',
-		'internalEndpoint' => 'http://minio:9000',
+		'internalEndpoint' => 'http://s3:9000',
 		'bucket'           => 's3fs-e2e',
-		'accessKey'        => 's3fse2eaccess',
-		'secretKey'        => 's3fse2esecret',
+		'accessKey'        => 'GK53f5e2e053f5e2e053f5e2e0',
+		'secretKey'        => '53f5e2e053f5e2e053f5e2e053f5e2e053f5e2e053f5e2e053f5e2e053f5e2e0',
 	],
 	// Overwritten by run.sh with what it actually resolved and installed.
 	'joomlaVersion' => '0.0.0',

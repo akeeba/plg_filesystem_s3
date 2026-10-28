@@ -24,7 +24,7 @@ use Akeeba\Plugin\Filesystem\S3\IntegrationTest\SiteProvisioner;
  */
 class AccessControlTest extends AbstractE2ETestCase
 {
-	private const ADAPTER = SiteProvisioner::ADAPTER_V2;
+	private const ADAPTER = SiteProvisioner::ADAPTER_V4;
 
 	public function testAGuestCannotListABucket(): void
 	{
@@ -52,12 +52,12 @@ class AccessControlTest extends AbstractE2ETestCase
 
 		$this->assertApiRefused(
 			403,
-			$this->media()->createFile(self::ADAPTER, '/' . $this->scratch(), 'csrf.txt', "x\n", false, MediaApi::NO_TOKEN)
+			$this->media()->createFile(self::ADAPTER, '/' . $this->scratch(), 'csrf.txt', "csrf test\n", false, MediaApi::NO_TOKEN)
 		);
 		$this->assertFalse($this->bucket()->exists($key));
 
 		// Positive control: the same upload with the session's token goes through.
-		$this->assertApiSuccess($this->media()->createFile(self::ADAPTER, '/' . $this->scratch(), 'csrf.txt', "x\n"));
+		$this->assertApiSuccess($this->media()->createFile(self::ADAPTER, '/' . $this->scratch(), 'csrf.txt', "csrf test\n"));
 		$this->assertTrue($this->bucket()->exists($key));
 	}
 

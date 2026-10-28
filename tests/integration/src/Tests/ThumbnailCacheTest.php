@@ -71,10 +71,10 @@ class ThumbnailCacheTest extends AbstractE2ETestCase
 
 	public function testAPlainS3ConnectionGetsLocalThumbnails(): void
 	{
-		// The site reaches MinIO over plain HTTP; the original is downloaded through the public URL.
-		$this->setConnectionParams('v2path', ['url_scheme' => 'http']);
+		// The site reaches the S3 endpoint over plain HTTP; the original is downloaded through the public URL.
+		$this->setConnectionParams('v4path', ['url_scheme' => 'http']);
 
-		$thumb = $this->thumbnailOf(SiteProvisioner::ADAPTER_V2);
+		$thumb = $this->thumbnailOf(SiteProvisioner::ADAPTER_V4);
 
 		$this->assertStringStartsWith(static::$config->getSiteUrl() . '/media/plg_filesystem_s3/cache/', $thumb);
 	}
@@ -85,7 +85,7 @@ class ThumbnailCacheTest extends AbstractE2ETestCase
 	 */
 	public function testAFailedThumbnailFallsBackToTheOriginalUrl(): void
 	{
-		$listing = $this->assertApiSuccess($this->media()->get(SiteProvisioner::ADAPTER_V2, '/fixtures'));
+		$listing = $this->assertApiSuccess($this->media()->get(SiteProvisioner::ADAPTER_V4, '/fixtures'));
 		$pixel   = $this->entry($listing, 'pixel.png');
 
 		$this->assertSame($this->urlOf('/fixtures/pixel.png'), $pixel['thumb_path']);
@@ -93,7 +93,7 @@ class ThumbnailCacheTest extends AbstractE2ETestCase
 
 	public function testAFailedThumbnailRaisesNoPhpErrors(): void
 	{
-		$this->assertApiSuccess($this->media()->get(SiteProvisioner::ADAPTER_V2, '/fixtures'));
+		$this->assertApiSuccess($this->media()->get(SiteProvisioner::ADAPTER_V4, '/fixtures'));
 
 		$this->assertNoNewPluginPhpErrors();
 	}
@@ -103,7 +103,7 @@ class ThumbnailCacheTest extends AbstractE2ETestCase
 	 */
 	public function testAFailedThumbnailIsRemembered(): void
 	{
-		$this->assertApiSuccess($this->media()->get(SiteProvisioner::ADAPTER_V2, '/fixtures'));
+		$this->assertApiSuccess($this->media()->get(SiteProvisioner::ADAPTER_V4, '/fixtures'));
 
 		$markers = array_filter($this->cachedFiles(), fn(string $file) => filesize($file) === 0);
 
@@ -178,6 +178,6 @@ class ThumbnailCacheTest extends AbstractE2ETestCase
 
 	private function urlOf(string $path): string
 	{
-		return $this->assertApiSuccess($this->media()->get(SiteProvisioner::ADAPTER_V2, $path, ['url' => 1]))[0]['url'];
+		return $this->assertApiSuccess($this->media()->get(SiteProvisioner::ADAPTER_V4, $path, ['url' => 1]))[0]['url'];
 	}
 }

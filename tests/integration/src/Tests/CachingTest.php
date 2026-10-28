@@ -42,7 +42,7 @@ class CachingTest extends AbstractE2ETestCase
 		// Control: an uncached connection to the same bucket sees the change immediately.
 		$this->assertSame(
 			['first.txt', 'second.txt'],
-			$this->names($this->assertApiSuccess($this->media()->get(SiteProvisioner::ADAPTER_V2, "/$s")))
+			$this->names($this->assertApiSuccess($this->media()->get(SiteProvisioner::ADAPTER_V4, "/$s")))
 		);
 	}
 
@@ -52,7 +52,7 @@ class CachingTest extends AbstractE2ETestCase
 		$this->bucket()->put("$s/first.txt", "1\n");
 		$this->assertApiSuccess($this->media()->get(self::CACHED, "/$s"));
 
-		$this->assertApiSuccess($this->media()->createFile(self::CACHED, "/$s", 'uploaded.txt', "u\n"));
+		$this->assertApiSuccess($this->media()->createFile(self::CACHED, "/$s", 'uploaded.txt', "uploaded\n"));
 
 		$this->assertSame(
 			['first.txt', 'uploaded.txt'],
@@ -128,7 +128,7 @@ class CachingTest extends AbstractE2ETestCase
 		{
 			// Control: without the cache, the viewer's dates are in the viewer's timezone
 			$uncached = $this->entry(
-				$this->assertApiSuccess($this->media($this->viewer())->get(SiteProvisioner::ADAPTER_V2, '/fixtures')),
+				$this->assertApiSuccess($this->media($this->viewer())->get(SiteProvisioner::ADAPTER_V4, '/fixtures')),
 				'hello.txt'
 			);
 			$this->assertSame(

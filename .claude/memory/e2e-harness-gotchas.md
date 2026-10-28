@@ -5,8 +5,12 @@
 - **The plugin log file accumulates across tests.** Assert on what the request under test appended
   (`ErrorDisclosureTest::loggedDuring()`), never on the whole file: a test once passed only because earlier tests
   had logged what it looked for.
-- **MinIO checks the v4 region** (`MINIO_SITE_REGION=us-east-1` in `docker-compose.yml`). Without it MinIO accepts any
-  region, which hid known issue #12 (every v4 custom-endpoint request signed for an empty region). Keep it.
+- **Garage checks the v4 region** (`s3_region = "us-east-1"` in the shared `garage.toml`). MinIO needed
+  `MINIO_SITE_REGION` for that, and without it accepted any region, which hid known issue #12 (every v4
+  custom-endpoint request signed for an empty region). Keep the region set. Garage implements v4 signatures only,
+  so the E2E connections are all v4; v2 is unit-tested.
+- **Anonymous reads go through the `s3` nginx front**, not Garage's S3 port (which refuses anonymous requests).
+  Anonymous bucket listing does not exist: list with `Bucket::keys()`, which uses the `aws` CLI.
 - **Change one provisioned connection** with `setConnectionParams('<label>', [...])`; `tearDown()` restores the
   provisioned plugin parameters.
 - **Guard new tests with a positive control** where the red could have another cause (e.g. prove the viewer's

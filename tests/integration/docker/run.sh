@@ -3,15 +3,15 @@
 # One-shot end-to-end test harness for plg_filesystem_s3.
 #
 # Provisions a throwaway Joomla site inside Docker (Apache + PHP-FPM + MySQL +
-# MinIO, all versions configurable) and runs the PHPUnit end-to-end suite against it over
+# Garage, all versions configurable) and runs the PHPUnit end-to-end suite against it over
 # real HTTP. Every run starts from a completely clean slate, so a suite that fails
 # or crashes mid-way never leaves a site behind in an unknown state.
 #
 # What it does, in order:
 #   1. Scrub any existing containers, volumes and the previous web root.
 #   2. Acquire the requested Joomla version (from ../inbox/ or by downloading).
-#   3. Bring up the Dockerized stack (shared images); create the MinIO bucket and grant
-#      the host anonymous read-only access to it.
+#   3. Bring up the Dockerized stack (shared images); provision Garage (key, bucket) and make the
+#      bucket anonymously readable (never writable) through the `s3` nginx front.
 #   4. Install Joomla using its installation/joomla.php CLI helper.
 #   5. Normalise the site configuration (SEF, caching, debug and mail off).
 #   6. Build the package with `phing git` and install plg_filesystem_s3.
@@ -48,6 +48,9 @@ INBOX_DIR="${INTEGRATION_DIR}/inbox"
 WWW_DIR="${SCRIPT_DIR}/www"
 # Builds the PHP and Apache images every Akeeba E2E stack shares; see bring_up_stack().
 E2E_IMAGES="${REPO_ROOT}/../buildfiles/docker/e2e/images.sh"
+# Garage's configuration, the nginx front for anonymous reads and the provisioning helpers; shared too.
+E2E_GARAGE_DIR="${REPO_ROOT}/../buildfiles/docker/e2e/garage"
+export E2E_GARAGE_DIR
 INSTALLER_SCRIPT="${REPO_ROOT}/plugins/filesystem/s3/script.plg_filesystem_s3.php"
 INSTALLER_SCRIPT_REL="plugins/filesystem/s3/script.plg_filesystem_s3.php"
 
@@ -135,24 +138,28 @@ set +a
 : "${JOOMLA_VERSION:?JOOMLA_VERSION is not set}"
 : "${APACHE_VERSION:=2.4}"
 : "${MYSQL_VERSION:=8.4}"
-: "${MINIO_VERSION:=RELEASE.2025-09-07T16-13-09Z}"
+: "${GARAGE_VERSION:=v2.5.0}"
 : "${DB_PREFIX:=e2e_}"
 : "${DB_NAME:=s3fse2e}"
 : "${DB_ROOT_PASSWORD:=root}"
 : "${HTTP_PORT:=8190}"
 : "${DB_PORT:=33319}"
 : "${S3_PORT:=9190}"
-: "${S3_ACCESS_KEY:=s3fse2eaccess}"
-: "${S3_SECRET_KEY:=s3fse2esecret}"
+: "${S3_ACCESS_KEY:=GK53f5e2e053f5e2e053f5e2e0}"
+: "${S3_SECRET_KEY:=53f5e2e053f5e2e053f5e2e053f5e2e053f5e2e053f5e2e053f5e2e053f5e2e0}"
 : "${S3_BUCKET:=s3fs-e2e}"
 : "${TEST_USER_PASSWORD:=test}"
 
 # In-container CLI helpers ---------------------------------------------------
 php_cli()   { DC exec -T php php "$@"; }
 mysql_cli() { DC exec -T db mysql -uroot -p"${DB_ROOT_PASSWORD}" "$@"; }
-# `mc` has no `up`; it runs one-shot, with the full credentials (see docker-compose.yml).
-mc_cli()    { DC run --rm -T mc "$@"; }
-mc_sh()     { DC run --rm -T --entrypoint bash mc -c "$1"; }
+# The Garage image has no shell, only /garage; see provision.sh.
+garage_cli() { DC exec -T garage /garage "$@"; }
+# `s3cli` runs one-shot, with the full credentials (see docker-compose.yml).
+s3_cli()     { DC run --rm -T --no-deps s3cli "$@"; }
+[ -f "${E2E_GARAGE_DIR}/provision.sh" ] || die "${E2E_GARAGE_DIR}/provision.sh not found. Check out akeeba/buildfiles next to this repository."
+# shellcheck source=/dev/null
+. "${E2E_GARAGE_DIR}/provision.sh"
 
 # ---------------------------------------------------------------------------
 # Matrix mode: re-invoke ourselves once per pair and aggregate the result.
@@ -438,8 +445,8 @@ ensure_images() {
 }
 
 bring_up_stack() {
-	log "Starting the stack (PHP ${PHP_VERSION}, Apache ${APACHE_VERSION}, MySQL ${MYSQL_VERSION}, MinIO ${MINIO_VERSION})"
-	# The mc service mounts ./seed and ./bulk; it must exist before compose creates the bind mount as root.
+	log "Starting the stack (PHP ${PHP_VERSION}, Apache ${APACHE_VERSION}, MySQL ${MYSQL_VERSION}, Garage ${GARAGE_VERSION})"
+	# The s3cli service mounts ./seed and ./bulk; it must exist before compose creates the bind mount as root.
 	mkdir -p "${SCRIPT_DIR}/seed" "${SCRIPT_DIR}/bulk"
 	ensure_images
 	DC up -d
@@ -462,24 +469,25 @@ bring_up_stack() {
 	done
 	ok "Apache is up"
 
-	log "Creating the '${S3_BUCKET}' bucket and granting the host anonymous read-only access"
-	# The policy template names the bucket as __BUCKET__. The mc image has bash but no sed.
+	log "Provisioning Garage: the '${S3_BUCKET}' bucket, publicly readable"
+	garage_provision "${S3_ACCESS_KEY}" "${S3_SECRET_KEY}" "${S3_BUCKET}"
+	garage_public_read "${S3_BUCKET}"
+
+	# Prove the front works: an anonymous GET of an object must succeed, an anonymous PUT must not. (Anonymous
+	# listing does not exist on Garage; the tests list through the s3cli service.)
+	local probe="probe-$$.txt"
+	printf 'probe' | s3_cli s3 cp - "s3://${S3_BUCKET}/${probe}" >/dev/null 2>&1 \
+		|| die "Could not write a probe object into the bucket with the S3 credentials."
 	tries=0
-	until mc_sh "mc mb --ignore-existing 'e2e/${S3_BUCKET}' >/dev/null \
-		&& p=\"\$(cat /config/minio-anonymous-policy.json.tpl)\" \
-		&& printf '%s' \"\${p//__BUCKET__/${S3_BUCKET}}\" > /tmp/policy.json \
-		&& mc anonymous set-json /tmp/policy.json 'e2e/${S3_BUCKET}' >/dev/null" 2>/dev/null; do
+	until [ "$(curl -s -o /dev/null -w '%{http_code}' "http://localhost:${S3_PORT}/${S3_BUCKET}/${probe}")" = "200" ]; do
 		tries=$((tries + 1))
-		[ "${tries}" -gt 30 ] && die "MinIO did not become ready, or the bucket could not be created."
+		[ "${tries}" -gt 15 ] && die "Anonymous GET of an object in the bucket failed; the public-read front is not working."
 		sleep 2
 	done
-
-	# Prove the policy took: anonymous listing must work, anonymous writing must not.
-	curl -fsS -o /dev/null "http://localhost:${S3_PORT}/${S3_BUCKET}?list-type=2" \
-		|| die "Anonymous listing of the bucket failed; the MinIO policy was not applied."
 	[ "$(curl -s -o /dev/null -w '%{http_code}' -X PUT --data 'x' "http://localhost:${S3_PORT}/${S3_BUCKET}/anonymous-write-probe.txt")" = "403" ] \
-		|| die "Anonymous PUT into the bucket was not refused; the MinIO policy is too broad."
-	ok "MinIO is up at http://localhost:${S3_PORT}/${S3_BUCKET} (anonymous, read-only)"
+		|| die "Anonymous PUT into the bucket was not refused; the public-read front is too permissive."
+	s3_cli s3 rm "s3://${S3_BUCKET}/${probe}" >/dev/null 2>&1 || true
+	ok "Garage is up at http://localhost:${S3_PORT}/${S3_BUCKET} (anonymous GET only)"
 }
 
 install_joomla() {
@@ -649,9 +657,9 @@ return [
 		'password'      => '${TEST_USER_PASSWORD}',
 	],
 	's3'      => [
-		// MinIO as the host sees it (anonymous, read-only) and as the site sees it.
+		// The S3 endpoint as the host sees it (anonymous GET only) and as the site sees it.
 		'publicUrl'        => 'http://localhost:${S3_PORT}',
-		'internalEndpoint' => 'http://minio:9000',
+		'internalEndpoint' => 'http://s3:9000',
 		'bucket'           => '${S3_BUCKET}',
 		'accessKey'        => '${S3_ACCESS_KEY}',
 		'secretKey'        => '${S3_SECRET_KEY}',
@@ -715,7 +723,7 @@ echo
 if [ "${KEEP_CONTAINERS}" -eq 1 ] || [ "${RUN_TESTS}" -eq 0 ]; then
 	ok "Done. Site remains up for iterating on individual tests:"
 	echo "     Site:   http://localhost:${HTTP_PORT}  (admin / ${ADMIN_PASSWORD})"
-	echo "     Bucket: http://localhost:${S3_PORT}/${S3_BUCKET}?list-type=2  (anonymous, read-only)"
+	echo "     Bucket: http://localhost:${S3_PORT}/${S3_BUCKET}/<key>  (anonymous GET only)"
 	echo "     phpunit -c phpunit-integration.xml --filter SomeTest"
 	echo "     php tests/integration/provision.php   # put the fixtures back"
 	echo "     ${SCRIPT_DIR}/run.sh --down   # to tear it all down"

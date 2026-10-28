@@ -63,7 +63,7 @@ class UpdateCleanupTest extends AbstractE2ETestCase
 
 		// Nothing current went with them
 		$this->assertFileExists($pluginRoot . 'src/Rule/BucketRule.php');
-		$this->assertApiSuccess($this->media()->get(SiteProvisioner::ADAPTER_V2, '/fixtures'));
+		$this->assertApiSuccess($this->media()->get(SiteProvisioner::ADAPTER_V4, '/fixtures'));
 	}
 
 	private function installBuiltPackage(): void

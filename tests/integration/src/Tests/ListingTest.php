@@ -23,7 +23,7 @@ class ListingTest extends AbstractE2ETestCase
 {
 	public function testTheRootListsTopLevelFoldersAsDirectories(): void
 	{
-		$listing = $this->assertApiSuccess($this->media()->get(SiteProvisioner::ADAPTER_V2, '/'));
+		$listing = $this->assertApiSuccess($this->media()->get(SiteProvisioner::ADAPTER_V4, '/'));
 
 		// Other tests' scratch folders (t-…) may live at the root too; they are not part of the fixture.
 		$names = array_values(array_filter($this->names($listing), static fn(string $n): bool => !str_starts_with($n, 't-')));
@@ -32,13 +32,13 @@ class ListingTest extends AbstractE2ETestCase
 
 		$fixtures = $this->entry($listing, 'fixtures');
 		$this->assertSame('dir', $fixtures['type']);
-		$this->assertSame(SiteProvisioner::ADAPTER_V2 . ':/fixtures', $fixtures['path']);
-		$this->assertSame(SiteProvisioner::ADAPTER_V2, $fixtures['adapter']);
+		$this->assertSame(SiteProvisioner::ADAPTER_V4 . ':/fixtures', $fixtures['path']);
+		$this->assertSame(SiteProvisioner::ADAPTER_V4, $fixtures['adapter']);
 	}
 
 	public function testAFolderListsItsFilesAndSubfoldersButNotDeeperObjects(): void
 	{
-		$listing = $this->assertApiSuccess($this->media()->get(SiteProvisioner::ADAPTER_V2, '/fixtures'));
+		$listing = $this->assertApiSuccess($this->media()->get(SiteProvisioner::ADAPTER_V4, '/fixtures'));
 
 		$this->assertSame(['docs', 'hello.txt', 'pixel.png'], $this->names($listing));
 		$this->assertSame('dir', $this->entry($listing, 'docs')['type']);
@@ -47,12 +47,12 @@ class ListingTest extends AbstractE2ETestCase
 
 	public function testAFileCarriesItsMetadata(): void
 	{
-		$listing = $this->assertApiSuccess($this->media()->get(SiteProvisioner::ADAPTER_V2, '/fixtures'));
+		$listing = $this->assertApiSuccess($this->media()->get(SiteProvisioner::ADAPTER_V4, '/fixtures'));
 		$hello   = $this->entry($listing, 'hello.txt');
 		$pixel   = $this->entry($listing, 'pixel.png');
 
 		$this->assertSame('file', $hello['type']);
-		$this->assertSame(SiteProvisioner::ADAPTER_V2 . ':/fixtures/hello.txt', $hello['path']);
+		$this->assertSame(SiteProvisioner::ADAPTER_V4 . ':/fixtures/hello.txt', $hello['path']);
 		$this->assertSame('txt', $hello['extension']);
 		$this->assertSame(\strlen("Hello, S3!\n"), $hello['size']);
 		$this->assertSame('text/plain', $hello['mime_type']);
@@ -68,7 +68,7 @@ class ListingTest extends AbstractE2ETestCase
 	 */
 	public function testAskingForAFileDescribesJustThatFile(): void
 	{
-		$data = $this->assertApiSuccess($this->media()->get(SiteProvisioner::ADAPTER_V2, '/fixtures/hello.txt'));
+		$data = $this->assertApiSuccess($this->media()->get(SiteProvisioner::ADAPTER_V4, '/fixtures/hello.txt'));
 
 		$this->assertCount(1, $data);
 		$this->assertSame('hello.txt', $data[0]['name']);
@@ -79,7 +79,7 @@ class ListingTest extends AbstractE2ETestCase
 	{
 		$this->assertFalse($this->bucket()->exists('fixtures/docs/'), 'Precondition: no placeholder object.');
 
-		$listing = $this->assertApiSuccess($this->media()->get(SiteProvisioner::ADAPTER_V2, '/fixtures/docs'));
+		$listing = $this->assertApiSuccess($this->media()->get(SiteProvisioner::ADAPTER_V4, '/fixtures/docs'));
 
 		$this->assertSame(['readme.txt'], $this->names($listing));
 	}
@@ -87,7 +87,7 @@ class ListingTest extends AbstractE2ETestCase
 	public function testAMissingFolderIsAnEmptyListing(): void
 	{
 		// S3 has no folders: a prefix with no objects under it is indistinguishable from an empty folder.
-		$listing = $this->assertApiSuccess($this->media()->get(SiteProvisioner::ADAPTER_V2, '/no-such-folder'));
+		$listing = $this->assertApiSuccess($this->media()->get(SiteProvisioner::ADAPTER_V4, '/no-such-folder'));
 
 		$this->assertSame([], $listing);
 	}
@@ -95,7 +95,7 @@ class ListingTest extends AbstractE2ETestCase
 	public function testAMissingFileCannotBeFetchedWithUrl(): void
 	{
 		// With url=1 the Media Manager asks for the file itself, which must not be conjured up.
-		$response = $this->media()->get(SiteProvisioner::ADAPTER_V2, '/fixtures/nope.txt', ['url' => 1]);
+		$response = $this->media()->get(SiteProvisioner::ADAPTER_V4, '/fixtures/nope.txt', ['url' => 1]);
 		$json     = $response->json();
 
 		$this->assertTrue(\in_array($response->code, [200, 404], true), $response->summary());
@@ -116,7 +116,7 @@ class ListingTest extends AbstractE2ETestCase
 
 		$this->bucket()->putMany($this->scratch() . '/big', $objects);
 
-		$listing = $this->assertApiSuccess($this->media()->get(SiteProvisioner::ADAPTER_V2, '/' . $this->scratch() . '/big'));
+		$listing = $this->assertApiSuccess($this->media()->get(SiteProvisioner::ADAPTER_V4, '/' . $this->scratch() . '/big'));
 		$names   = $this->names($listing);
 
 		$this->assertCount(1005, $names);
@@ -125,9 +125,9 @@ class ListingTest extends AbstractE2ETestCase
 
 	public function testNoPhpErrorsWhileBrowsing(): void
 	{
-		$this->media()->get(SiteProvisioner::ADAPTER_V2, '/');
-		$this->media()->get(SiteProvisioner::ADAPTER_V2, '/fixtures');
-		$this->media()->get(SiteProvisioner::ADAPTER_V2, '/fixtures/hello.txt', ['url' => 1]);
+		$this->media()->get(SiteProvisioner::ADAPTER_V4, '/');
+		$this->media()->get(SiteProvisioner::ADAPTER_V4, '/fixtures');
+		$this->media()->get(SiteProvisioner::ADAPTER_V4, '/fixtures/hello.txt', ['url' => 1]);
 
 		$this->assertNoNewPluginPhpErrors();
 	}

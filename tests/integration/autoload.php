@@ -10,7 +10,7 @@
  *
  * Shared by bootstrap-e2e.php and provision.php. No Joomla is loaded here, and none is needed: the
  * suite talks to the site over HTTP, to its database over PDO (fixtures only), and to the bucket over
- * MinIO's anonymous, read-only HTTP view — exactly as an outside observer would. Anything it could
+ * the bucket's anonymous GET view and the AWS CLI — exactly as an outside observer would. Anything it could
  * only see by loading the site's code in-process is not something a real request could see either.
  */
 

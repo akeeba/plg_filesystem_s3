@@ -18,7 +18,7 @@ use Akeeba\Plugin\Filesystem\S3\IntegrationTest\SiteProvisioner;
  */
 class SearchTest extends AbstractE2ETestCase
 {
-	private const ADAPTER = SiteProvisioner::ADAPTER_V2;
+	private const ADAPTER = SiteProvisioner::ADAPTER_V4;
 
 	public function testSearchFindsAFileByItsFullName(): void
 	{

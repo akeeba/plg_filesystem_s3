@@ -42,7 +42,7 @@
 	"scripts-descriptions": {
 		"test": "Runs the unit and the integration (E2E) test suites",
 		"test:unit": "Runs the unit test suite (needs PHPUnit 11 on PATH)",
-		"test:integration": "Runs the E2E suite against a disposable Docker stack (Joomla + MinIO); needs Docker and Phing"
+		"test:integration": "Runs the E2E suite against a disposable Docker stack (Joomla + Garage); needs Docker and Phing"
 	},
 	"extra": {
 		"akcompat": {

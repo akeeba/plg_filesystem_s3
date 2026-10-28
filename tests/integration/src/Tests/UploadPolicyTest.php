@@ -23,7 +23,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
  */
 class UploadPolicyTest extends AbstractE2ETestCase
 {
-	private const ADAPTER = SiteProvisioner::ADAPTER_V2;
+	private const ADAPTER = SiteProvisioner::ADAPTER_V4;
 
 	/**
 	 * Core's own local adapter, the baseline: it refuses every payload below.

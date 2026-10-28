@@ -59,10 +59,10 @@
 	</target>
 
 	<!--
-	Runs the E2E tests only, against a disposable Docker stack (Joomla + MinIO) which the script builds and brings up
+	Runs the E2E tests only, against a disposable Docker stack (Joomla + Garage) which the script builds and brings up
 	itself. Needs Docker.
 	-->
-	<target name="test-integration" description="Runs the E2E test suite only, against a Dockerised Joomla + MinIO">
+	<target name="test-integration" description="Runs the E2E test suite only, against a Dockerised Joomla + Garage">
 		<exec executable="composer"
 			  dir="${dirs.root}" checkreturn="true" passthru="true">
 			<arg value="test:integration" />

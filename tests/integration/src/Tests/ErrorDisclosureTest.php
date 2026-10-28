@@ -24,6 +24,12 @@ class ErrorDisclosureTest extends AbstractE2ETestCase
 	private const LOG_FILE = 'administrator/logs/plg_filesystem_s3.php';
 
 	/**
+	 * The S3 error code a request signed with the wrong secret gets. Garage answers AccessDenied, where Amazon S3
+	 * and MinIO answered SignatureDoesNotMatch. The plugin must keep whichever code the server reports.
+	 */
+	private const BAD_SIGNATURE_CODE = 'AccessDenied';
+
+	/**
 	 * Site Debug as provisioned, put back after each test.
 	 */
 	private ?bool $originalDebug = null;
@@ -79,7 +85,7 @@ class ErrorDisclosureTest extends AbstractE2ETestCase
 			fn() => $this->media()->createFile(SiteProvisioner::ADAPTER_BAD, '/' . $this->scratch(), 'x.txt', "x\n")
 		);
 
-		$this->assertStringContainsString('SignatureDoesNotMatch', $logged);
+		$this->assertStringContainsString(self::BAD_SIGNATURE_CODE, $logged);
 		$this->assertStringContainsString('Debug info', $logged);
 	}
 
@@ -91,7 +97,7 @@ class ErrorDisclosureTest extends AbstractE2ETestCase
 			fn() => $this->media()->createFile(SiteProvisioner::ADAPTER_BAD, '/' . $this->scratch(), 'x.txt', "x\n")
 		);
 
-		$this->assertStringContainsString('SignatureDoesNotMatch', $logged);
+		$this->assertStringContainsString(self::BAD_SIGNATURE_CODE, $logged);
 		$this->assertStringNotContainsString('Debug info', $logged);
 	}
 
@@ -101,7 +107,7 @@ class ErrorDisclosureTest extends AbstractE2ETestCase
 		$before = $this->logSize();
 
 		$this->assertApiSuccess(
-			$this->media()->createFile(SiteProvisioner::ADAPTER_V2, '/' . $this->scratch(), 'new.txt', "new\n")
+			$this->media()->createFile(SiteProvisioner::ADAPTER_V4, '/' . $this->scratch(), 'new.txt', "new\n")
 		);
 
 		$this->assertSame($before, $this->logSize());
@@ -111,7 +117,7 @@ class ErrorDisclosureTest extends AbstractE2ETestCase
 	{
 		$this->setSiteDebug(false);
 
-		$response = $this->media()->delete(SiteProvisioner::ADAPTER_V2, '/fixtures/no-such-file.png');
+		$response = $this->media()->delete(SiteProvisioner::ADAPTER_V4, '/fixtures/no-such-file.png');
 		$message  = $response->json()['message'] ?? '';
 
 		$this->assertSame(404, $response->code, $response->summary());
@@ -146,7 +152,7 @@ class ErrorDisclosureTest extends AbstractE2ETestCase
 		$message = $json['message'] ?? '';
 
 		$this->assertFalse($json['success'] ?? true, $response->summary());
-		$this->assertStringContainsString('SignatureDoesNotMatch', $message, 'The S3 error code is kept.');
+		$this->assertStringContainsString(self::BAD_SIGNATURE_CODE, $message, 'The S3 error code is kept.');
 		$this->assertStringNotContainsString('Debug info', $message);
 		$this->assertStringNotContainsString($this->bucket()->getName(), $message);
 		$this->assertStringNotContainsString('Akeeba\\S3', $message);

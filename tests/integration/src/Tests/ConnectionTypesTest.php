@@ -25,7 +25,6 @@ class ConnectionTypesTest extends AbstractE2ETestCase
 	public static function provideWorkingAdapters(): array
 	{
 		return [
-			'v2 signatures' => [SiteProvisioner::ADAPTER_V2],
 			'v4 signatures' => [SiteProvisioner::ADAPTER_V4],
 			'CDN'           => [SiteProvisioner::ADAPTER_CDN],
 		];
@@ -61,7 +60,7 @@ class ConnectionTypesTest extends AbstractE2ETestCase
 	{
 		$s = $this->scratch();
 
-		$data = $this->assertApiSuccess($this->media()->createFile(SiteProvisioner::ADAPTER_NESTED, "/$s", 'n.txt', "n\n"));
+		$data = $this->assertApiSuccess($this->media()->createFile(SiteProvisioner::ADAPTER_NESTED, "/$s", 'n.txt', "nested\n"));
 
 		$this->assertSame(SiteProvisioner::ADAPTER_NESTED . ":/$s/n.txt", $data['path'], 'Paths stay relative to the directory.');
 		$this->assertTrue($this->bucket()->exists(SiteProvisioner::NESTED_DIRECTORY . "/$s/n.txt"));
@@ -107,7 +106,7 @@ class ConnectionTypesTest extends AbstractE2ETestCase
 	{
 		$this->media()->get(SiteProvisioner::ADAPTER_BAD, '/');
 
-		$listing = $this->assertApiSuccess($this->media()->get(SiteProvisioner::ADAPTER_V2, '/fixtures'));
+		$listing = $this->assertApiSuccess($this->media()->get(SiteProvisioner::ADAPTER_V4, '/fixtures'));
 		$this->assertContains('hello.txt', $this->names($listing));
 	}
 

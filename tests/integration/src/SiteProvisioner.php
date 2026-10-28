@@ -18,7 +18,7 @@ use RuntimeException;
  * Puts the site and the bucket into the known state every test starts from.
  *
  * Fixtures are the one place this suite writes behind the application's back: plugin parameters and a
- * restricted user straight into the database, seed objects straight into the bucket with `mc`. The
+ * restricted user straight into the database, seed objects straight into the bucket with the AWS CLI. The
  * behaviour under test is then always driven through the Media Manager over HTTP.
  *
  * Idempotent: run it again (php tests/integration/provision.php) to put everything back.
@@ -28,7 +28,6 @@ final class SiteProvisioner
 	/**
 	 * Adapter ids as the Media Manager addresses them: `s3-<connection label>`.
 	 */
-	public const ADAPTER_V2       = 's3-v2path';
 	public const ADAPTER_V4       = 's3-v4path';
 	public const ADAPTER_NESTED   = 's3-nested';
 	public const ADAPTER_CDN      = 's3-cdn';
@@ -70,7 +69,7 @@ final class SiteProvisioner
 
 	/**
 	 * The objects seeded into the bucket, key => content. Folders are deliberately NOT given placeholder
-	 * objects: this is what a bucket filled by the AWS CLI, CyberDuck or `mc` looks like.
+	 * objects: this is what a bucket filled by the AWS CLI, CyberDuck or the AWS CLI looks like.
 	 *
 	 * @return  array<string, string>
 	 */
@@ -172,7 +171,7 @@ final class SiteProvisioner
 			'acl'               => 'public-read',
 			'dualstack'         => '0',
 			'bucket'            => $s3['bucket'],
-			'signature'         => 'v2',
+			'signature'         => 'v4',
 			'region'            => 'us-east-1',
 			'custom_region'     => '',
 			'pathaccess'        => 'path',
@@ -184,13 +183,11 @@ final class SiteProvisioner
 		];
 
 		$connections = [
-			// The workhorse: path-style, v2 signatures.
-			['label' => 'v2path'],
-			// The same bucket with v4 signatures — the form's default.
-			['label' => 'v4path', 'signature' => 'v4'],
+			// The workhorse: path-style, v4 signatures (the form's default). Garage does not implement v2.
+			['label' => 'v4path'],
 			// A connection rooted in a sub-directory of the bucket.
 			['label' => 'nested', 'directory' => self::NESTED_DIRECTORY],
-			// A "CDN" in front of the bucket. MinIO serves the public bucket itself, so the CDN URL is
+			// A "CDN" in front of the bucket. The S3 endpoint serves the public bucket itself, so the CDN URL is
 			// simply the bucket's anonymous URL — which the site can reach, unlike the plugin's own
 			// https:// S3 URLs (known-issues.md).
 			['label' => 'cdn', 'type' => 'customcdn', 'cdn_url' => $s3['internalEndpoint'] . '/' . $s3['bucket']],
@@ -309,7 +306,7 @@ final class SiteProvisioner
 	}
 
 	/**
-	 * Empty the bucket and mirror the seed objects into it, in one `mc` container run.
+	 * Empty the bucket and sync the seed objects into it, in one `aws` container run.
 	 */
 	private function seedBucket(): void
 	{
@@ -325,14 +322,14 @@ final class SiteProvisioner
 
 		$bucket = $this->config->getS3()['bucket'];
 
-		(new ContainerCli($this->config))->mc(
+		(new ContainerCli($this->config))->s3(
 			[
-				'--quiet',
-				'mirror',
-				'--overwrite',
-				'--remove',
+				's3',
+				'sync',
+				'--only-show-errors',
+				'--delete',
 				'/seed',
-				'e2e/' . $bucket,
+				's3://' . $bucket,
 			]
 		);
 	}

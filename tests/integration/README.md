@@ -1,6 +1,6 @@
 # plg_filesystem_s3 end-to-end tests
 
-PHPUnit on the **host**, driving a real, disposable Joomla site and a real S3-compatible server (MinIO)
+PHPUnit on the **host**, driving a real, disposable Joomla site and a real S3-compatible server (Garage)
 in Docker, over real HTTP. Nothing boots Joomla in-process. The suite uses the plugin exactly as the
 Media Manager does, through Joomla's own `com_media` JSON API with a real back-end session and a real
 anti-CSRF token. It then checks every effect in the bucket itself, independently of the plugin.
@@ -57,8 +57,13 @@ enforces them from. It also refuses a PHP version older than the Joomla package 
 | `db` | MySQL 8.4 | `33319` |
 | `php` | PHP-FPM with Joomla and the Joomla CLI (shared image `akeeba-e2e/php`) | — |
 | `web` | Apache 2.4, FastCGI to `php` (shared image `akeeba-e2e/web`) | `8190` |
-| `minio` | MinIO, the S3 server every connection points at (`http://minio:9000` inside the network). Its site region is `us-east-1`, so like Amazon S3 it refuses v4 requests signed for any other region | `9190` |
-| `mc` | MinIO client, one-shot (`docker compose run --rm mc …`), full credentials | — |
+| `garage` | Garage, the S3 server behind every connection. Its region is `us-east-1`, so like Amazon S3 it refuses v4 requests signed for any other region. It implements v4 signatures only, and no bucket policies or ACLs | — |
+| `s3` | nginx in front of Garage, the endpoint every connection points at (`http://s3:9000` inside the network). Anonymous GET/HEAD of an object of the public bucket is served from Garage's web endpoint; everything else (every signed request, listings, writes) goes to the S3 API, so anonymous writes stay refused | `9190` |
+| `s3cli` | AWS CLI, one-shot (`docker compose run --rm s3cli …`), full credentials | — |
+
+Garage's configuration, the nginx configuration and the provisioning helpers (`garage_provision`, `garage_public_read`)
+are shared with the other Akeeba E2E stacks and live in the sibling `buildfiles` repository, under
+`docker/e2e/garage/`.
 
 The ports avoid every sibling harness under `~/Projects` (8080–8180, 33306–33316, 33406).
 
@@ -70,13 +75,14 @@ container; Apache uses the shared image's default vhost. The shared PHP image's 
 the plugin's thumbnail cache needs (`Preview::canResizeImages()`). A PHP extension the suite needs goes
 into that shared image, never into a project-local Dockerfile.
 
-**How the tests see the bucket.** `run.sh` gives the host *anonymous, read-only* access to the test
-bucket (`docker/config/minio-anonymous-policy.json.tpl`). It checks that listing works and that an
-anonymous PUT is refused. Every "the object is really there / really gone / has this content"
-assertion reads through that view with a plain HTTP client, never through akeeba/s3, the library the
-plugin itself uses. A successful anonymous GET is also the proof that an object is publicly readable.
-MinIO does not implement object ACLs, so on this server a bucket policy is the only way to make
-objects public. Writing behind the plugin's back (seeding, cache tests) goes through `mc`.
+**How the tests see the bucket.** `run.sh` makes the test bucket anonymously *readable* (`garage_public_read`)
+through the `s3` front. It checks that an anonymous GET of an object works and that an anonymous PUT is
+refused. Every "the object is really there / really gone / has this content" assertion reads through that
+view with a plain HTTP client, never through akeeba/s3, the library the plugin itself uses. A successful
+anonymous GET is also the proof that an object is publicly readable. Garage implements neither object ACLs
+nor bucket policies (the `s3` front is how a bucket's objects are made public) and has no anonymous bucket
+listing, so `Bucket::keys()`, like writing behind the plugin's back (seeding, cache tests), goes through
+the `aws` CLI in the `s3cli` container.
 
 ## Fixtures
 
@@ -86,10 +92,9 @@ objects public. Writing behind the plugin's back (seeding, cache tests) goes thr
 
   | Adapter | What it exercises |
   |---|---|
-  | `s3-v2path` | The workhorse: path-style, v2 signatures |
-  | `s3-v4path` | v4 signatures (the form's default) |
+  | `s3-v4path` | The workhorse: path-style, v4 signatures (the form's default). Garage does not implement v2 signatures, so they are covered by the unit tests only |
   | `s3-nested` | Directory option `nested/root` |
-  | `s3-cdn` | "Custom CDN" type; the CDN URL is MinIO's own public bucket URL |
+  | `s3-cdn` | "Custom CDN" type; the CDN URL is the S3 endpoint's own public bucket URL |
   | `s3-cached` | The S3 response cache on (300 s) |
   | `s3-badsecret` | Wrong secret key |
   | `s3-nobucket` | No bucket: the plugin must drop it |
@@ -97,7 +102,7 @@ objects public. Writing behind the plugin's back (seeding, cache tests) goes thr
 - **`viewer`**, a back-end user who may open the Media Manager (`core.login.admin`, `com_media`
   `core.manage`) but may not create, edit or delete anything in it.
 - **Seed objects** under `fixtures/` and `nested/`, with **no folder placeholder objects**. That is what a
-  bucket filled by the AWS CLI, CyberDuck or `mc` looks like, and it is the harder case for the
+  bucket filled by the AWS CLI, CyberDuck or `aws s3 sync` looks like, and it is the harder case for the
   adapter.
 
 Each test that writes works in its own scratch prefix (`t-<random>/`), removed when its class
@@ -119,7 +124,7 @@ thumbnails.
 | `UploadPolicyTest` | The site's upload policy (forbidden extensions, MIME and XSS checks) refuses the same uploads and edits as core's local adapter, and nothing reaches the bucket. |
 | `PublicUrlTest` | URLs are unsigned, name the object, include the Directory, are fetchable; CDN URLs; spaces. |
 | `AccessControlTest` | Guests, missing/wrong CSRF tokens and a user without create/edit/delete are refused, **and the bucket is unchanged**. Each refusal has a positive control. |
-| `ConnectionTypesTest` | v2, v4 and CDN round trips; the Directory prefix confines reads and writes; bad credentials fail loudly, leak nothing, and do not affect other connections. |
+| `ConnectionTypesTest` | v4 and CDN round trips; the Directory prefix confines reads and writes; bad credentials fail loudly, leak nothing, and do not affect other connections. |
 | `CachingTest` | The cache really caches (a change behind its back is not seen), and upload, new folder, delete and move each invalidate it. |
 | `SearchTest` | Exact and recursive search; substring search; searching a large folder. |
 | `ThumbnailCacheTest` | Local WebP thumbnails are generated, sized, served by the site and reused; failures degrade to the original URL. |
@@ -175,8 +180,7 @@ Keep the matrix current with the `audit-e2e-matrix` skill rather than editing ve
 
 - **Amazon S3 and CloudFront themselves**: dual-stack endpoints, storage classes other than
   `STANDARD`, real canned ACLs, EC2 IAM-role credentials, Lambda@Edge resizing. None of these can run
-  in Docker. MinIO accepts and ignores `x-amz-acl`, and only knows `STANDARD` and
-  `REDUCED_REDUNDANCY`. The EC2 metadata handshake and the ACL/region/endpoint parsing are
+  in Docker. Garage has no ACLs (it ignores `x-amz-acl`) and accepts any storage class without acting on it. The EC2 metadata handshake and the ACL/region/endpoint parsing are
   unit-tested instead (`UnitTest/`).
-- **Virtual-hosted access**: it needs wildcard DNS for `bucket.minio`, which the compose network does
+- **Virtual-hosted access**: it needs wildcard DNS for `bucket.s3`, which the compose network does
   not have.

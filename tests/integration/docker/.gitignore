@@ -5,9 +5,9 @@
 # The throwaway Joomla site (bind-mounted web root) is regenerated on every run.
 www/
 
-# Bucket seed files, written by the provisioner and mirrored into MinIO.
+# Bucket seed files, written by the provisioner and synced into Garage.
 seed/
-# Bulk objects written by individual tests (e.g. SearchTest) and mirrored into MinIO.
+# Bulk objects written by individual tests (e.g. SearchTest) and synced into Garage.
 bulk/
 
 # Package staging

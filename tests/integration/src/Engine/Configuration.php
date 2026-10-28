@@ -135,10 +135,10 @@ final class Configuration
 	}
 
 	/**
-	 * The S3-compatible server (MinIO) and the bucket the connections point at.
+	 * The S3-compatible server (Garage behind nginx) and the bucket the connections point at.
 	 *
-	 * `publicUrl` is MinIO as seen from the HOST, where anonymous read-only access is enabled for
-	 * inspection. `internalEndpoint` is MinIO as the SITE sees it, inside the compose network; it is
+	 * `publicUrl` is the S3 endpoint as seen from the HOST, where anonymous GET of the bucket's objects is
+	 * enabled for inspection. `internalEndpoint` is the same endpoint as the SITE sees it, inside the compose network; it is
 	 * what every connection is configured with, and so what every URL the plugin hands out points at.
 	 *
 	 * @return  array{publicUrl: string, internalEndpoint: string, bucket: string, accessKey: string, secretKey: string}
@@ -147,10 +147,10 @@ final class Configuration
 	{
 		return [
 			'publicUrl'        => rtrim((string) $this->get('s3.publicUrl', 'http://localhost:9190'), '/'),
-			'internalEndpoint' => (string) $this->get('s3.internalEndpoint', 'http://minio:9000'),
+			'internalEndpoint' => (string) $this->get('s3.internalEndpoint', 'http://s3:9000'),
 			'bucket'           => (string) $this->get('s3.bucket', 's3fs-e2e'),
-			'accessKey'        => (string) $this->get('s3.accessKey', 's3fse2eaccess'),
-			'secretKey'        => (string) $this->get('s3.secretKey', 's3fse2esecret'),
+			'accessKey'        => (string) $this->get('s3.accessKey', 'GK53f5e2e053f5e2e053f5e2e0'),
+			'secretKey'        => (string) $this->get('s3.secretKey', '53f5e2e053f5e2e053f5e2e053f5e2e053f5e2e053f5e2e053f5e2e053f5e2e0'),
 		];
 	}
 

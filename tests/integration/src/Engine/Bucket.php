@@ -10,18 +10,18 @@ namespace Akeeba\Plugin\Filesystem\S3\IntegrationTest\Engine;
 defined('_JEXEC') or die;
 
 use RuntimeException;
-use SimpleXMLElement;
 
 /**
  * The test bucket, observed independently of the code under test.
  *
- * Reads go straight to MinIO over plain HTTP from the host, through the anonymous, READ-ONLY bucket
- * policy run.sh installs — no signing library, least of all the one the plugin uses. That makes every
- * "the object really is there / really is gone" assertion independent of the plugin's own view, and
- * every successful anonymous GET proof that the object is publicly readable.
+ * Object reads go straight to the S3 endpoint over plain HTTP from the host, anonymously (the nginx front
+ * serves GET and HEAD of the objects of the public bucket, and refuses everything else) — no signing library,
+ * least of all the one the plugin uses. That makes every "the object really is there / really is gone"
+ * assertion independent of the plugin's own view, and every successful anonymous GET proof that the object is
+ * publicly readable.
  *
- * Writes (seeding, and changes made behind the plugin's back) go through the `mc` client with full
- * credentials; see {@see ContainerCli::mc()}.
+ * Garage has no anonymous bucket listing, so listing, like writing (seeding, and changes made behind the
+ * plugin's back), goes through the `aws` client with full credentials; see {@see ContainerCli::s3()}.
  */
 class Bucket
 {
@@ -77,34 +77,16 @@ class Bucket
 	 */
 	public function keys(string $prefix = ''): array
 	{
-		$keys  = [];
-		$token = null;
+		// The CLI pages through the listing itself. `null` (no Contents) means there is nothing under the prefix.
+		$output = (new ContainerCli($this->config))->s3(
+			['s3api', 'list-objects-v2', '--bucket', $this->name, '--prefix', $prefix, '--query', 'Contents[].Key', '--output', 'json']
+		);
+		$keys   = trim($output) === 'null' ? [] : json_decode($output, true);
 
-		do
+		if (!\is_array($keys))
 		{
-			$params = ['list-type' => 2, 'prefix' => $prefix];
-
-			if ($token !== null)
-			{
-				$params['continuation-token'] = $token;
-			}
-
-			$response = $this->surfer()->get($this->publicUrl . '/' . $this->name, $params);
-
-			if ($response->code !== 200)
-			{
-				throw new RuntimeException("Anonymous bucket listing failed.\n" . $response->summary());
-			}
-
-			$xml = new SimpleXMLElement($response->body);
-
-			foreach ($xml->Contents as $item)
-			{
-				$keys[] = (string) $item->Key;
-			}
-
-			$token = ((string) $xml->IsTruncated === 'true') ? (string) $xml->NextContinuationToken : null;
-		} while ($token !== null);
+			throw new RuntimeException("Could not list the bucket.\n" . $output);
+		}
 
 		sort($keys);
 
@@ -112,7 +94,7 @@ class Bucket
 	}
 
 	/**
-	 * Map a URL the plugin produced — which points at MinIO as the SITE sees it — onto the host's view,
+	 * Map a URL the plugin produced — which points at the S3 endpoint as the SITE sees it — onto the host's view,
 	 * keeping the path and query untouched.
 	 *
 	 * Only the origin is replaced. The scheme is replaced too, deliberately: whether the plugin chose the
@@ -139,13 +121,13 @@ class Bucket
 	 */
 	public function put(string $key, string $content): void
 	{
-		(new ContainerCli($this->config))->mc(['pipe', 'e2e/' . $this->name . '/' . $key], $content);
+		(new ContainerCli($this->config))->s3(['s3', 'cp', '--only-show-errors', '-', 's3://' . $this->name . '/' . $key], $content);
 	}
 
 	/**
-	 * Write many objects under a prefix behind the plugin's back, in a single `mc mirror` run.
+	 * Write many objects under a prefix behind the plugin's back, in a single `aws s3 sync` run.
 	 *
-	 * The files are staged in docker/bulk/ (mounted into the mc container as /bulk) and removed again
+	 * The files are staged in docker/bulk/ (mounted into the s3cli container as /bulk) and removed again
 	 * afterwards.
 	 *
 	 * @param   string                $prefix   The key prefix, e.g. 't-abc/big'.
@@ -164,8 +146,8 @@ class Bucket
 				file_put_contents($staging . '/' . $key, $content);
 			}
 
-			(new ContainerCli($this->config))->mc(
-				['--quiet', 'mirror', '/bulk/' . $prefix, 'e2e/' . $this->name . '/' . $prefix]
+			(new ContainerCli($this->config))->s3(
+				['s3', 'sync', '--only-show-errors', '/bulk/' . $prefix, 's3://' . $this->name . '/' . $prefix]
 			);
 		}
 		finally
@@ -184,7 +166,7 @@ class Bucket
 			throw new RuntimeException('Refusing to empty the whole bucket from a test; use the provisioner.');
 		}
 
-		(new ContainerCli($this->config))->mc(['rm', '--recursive', '--force', 'e2e/' . $this->name . '/' . $prefix]);
+		(new ContainerCli($this->config))->s3(['s3', 'rm', '--recursive', 's3://' . $this->name . '/' . $prefix]);
 	}
 
 	private function encodeKey(string $key): string

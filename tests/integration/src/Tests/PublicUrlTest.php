@@ -17,7 +17,7 @@ use Akeeba\Plugin\Filesystem\S3\IntegrationTest\SiteProvisioner;
  * The URL the Media Manager inserts into content when someone picks a file. It must be permanent (no
  * pre-signature: the plugin only supports public objects), must name the object, and must be fetchable.
  *
- * URLs point at MinIO as the SITE sees it (http://minio:9000). The host fetches them through the
+ * URLs point at the S3 endpoint as the SITE sees it (http://s3:9000). The host fetches them through the
  * published port instead ({@see \Akeeba\Plugin\Filesystem\S3\IntegrationTest\Engine\Bucket::toHostUrl()}),
  * and one test fetches a URL from inside the site's own container, exactly as handed out.
  */
@@ -25,7 +25,7 @@ class PublicUrlTest extends AbstractE2ETestCase
 {
 	public function testAnS3UrlIsPermanentAndNamesTheObject(): void
 	{
-		$url = $this->urlOf(SiteProvisioner::ADAPTER_V2, '/fixtures/hello.txt');
+		$url = $this->urlOf(SiteProvisioner::ADAPTER_V4, '/fixtures/hello.txt');
 
 		$this->assertStringNotContainsString('?', $url, 'A pre-signed (expiring) URL leaked out.');
 		$this->assertSame('/' . $this->bucket()->getName() . '/fixtures/hello.txt', parse_url($url, PHP_URL_PATH));
@@ -38,15 +38,15 @@ class PublicUrlTest extends AbstractE2ETestCase
 
 	public function testAnS3UrlUsesHttpsByDefault(): void
 	{
-		// The E2E MinIO endpoint is http://, but the default protocol for public URLs is HTTPS.
-		$this->assertStringStartsWith('https://', $this->urlOf(SiteProvisioner::ADAPTER_V2, '/fixtures/hello.txt'));
+		// The E2E S3 endpoint is http://, but the default protocol for public URLs is HTTPS.
+		$this->assertStringStartsWith('https://', $this->urlOf(SiteProvisioner::ADAPTER_V4, '/fixtures/hello.txt'));
 	}
 
 	public function testAnS3UrlUsesTheChosenProtocol(): void
 	{
-		$this->setConnectionParams('v2path', ['url_scheme' => 'http']);
+		$this->setConnectionParams('v4path', ['url_scheme' => 'http']);
 
-		$url = $this->urlOf(SiteProvisioner::ADAPTER_V2, '/fixtures/hello.txt');
+		$url = $this->urlOf(SiteProvisioner::ADAPTER_V4, '/fixtures/hello.txt');
 
 		$this->assertStringStartsWith(static::$config->getS3()['internalEndpoint'] . '/', $url);
 	}
@@ -55,7 +55,7 @@ class PublicUrlTest extends AbstractE2ETestCase
 	{
 		$url = $this->urlOf(SiteProvisioner::ADAPTER_V4, '/fixtures/hello.txt');
 
-		$this->assertSame('minio', parse_url($url, PHP_URL_HOST));
+		$this->assertSame('s3', parse_url($url, PHP_URL_HOST));
 		$this->assertSame('/' . $this->bucket()->getName() . '/fixtures/hello.txt', parse_url($url, PHP_URL_PATH));
 	}
 
@@ -78,7 +78,7 @@ class PublicUrlTest extends AbstractE2ETestCase
 	}
 
 	/**
-	 * The one URL this suite can fetch exactly as handed out: the site's own container resolves `minio`.
+	 * The one URL this suite can fetch exactly as handed out: the site's own container resolves `s3`.
 	 */
 	public function testACdnUrlIsFetchableFromTheSite(): void
 	{
@@ -111,9 +111,9 @@ class PublicUrlTest extends AbstractE2ETestCase
 	public function testAnUploadedFileIsPubliclyReadable(): void
 	{
 		$s = $this->scratch();
-		$this->assertApiSuccess($this->media()->createFile(SiteProvisioner::ADAPTER_V2, "/$s", 'public.txt', "public\n"));
+		$this->assertApiSuccess($this->media()->createFile(SiteProvisioner::ADAPTER_V4, "/$s", 'public.txt', "public\n"));
 
-		$url    = $this->urlOf(SiteProvisioner::ADAPTER_V2, "/$s/public.txt");
+		$url    = $this->urlOf(SiteProvisioner::ADAPTER_V4, "/$s/public.txt");
 		$object = $this->guest()->get($this->bucket()->toHostUrl($url));
 
 		$this->assertSame(200, $object->code, $object->summary());

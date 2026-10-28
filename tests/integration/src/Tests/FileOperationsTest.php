@@ -19,7 +19,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
  */
 class FileOperationsTest extends AbstractE2ETestCase
 {
-	private const ADAPTER = SiteProvisioner::ADAPTER_V2;
+	private const ADAPTER = SiteProvisioner::ADAPTER_V4;
 
 	public function testCreatingAFolderWritesAPlaceholderObject(): void
 	{
@@ -153,13 +153,13 @@ class FileOperationsTest extends AbstractE2ETestCase
 	{
 		$s = $this->scratch();
 		$this->assertApiSuccess($this->media()->createFolder(self::ADAPTER, "/$s", 'old'));
-		$this->assertApiSuccess($this->media()->createFile(self::ADAPTER, "/$s/old", 'a.txt', "a\n"));
-		$this->assertApiSuccess($this->media()->createFile(self::ADAPTER, "/$s/old", 'b.txt', "b\n"));
+		$this->assertApiSuccess($this->media()->createFile(self::ADAPTER, "/$s/old", 'a.txt', "file a\n"));
+		$this->assertApiSuccess($this->media()->createFile(self::ADAPTER, "/$s/old", 'b.txt', "file b\n"));
 
 		$this->assertApiSuccess($this->media()->move(self::ADAPTER, "/$s/old", "/$s/new"));
 
 		$this->assertSame(["$s/new/", "$s/new/a.txt", "$s/new/b.txt"], $this->bucket()->keys($s));
-		$this->assertSame("b\n", $this->bucket()->get("$s/new/b.txt")->body);
+		$this->assertSame("file b\n", $this->bucket()->get("$s/new/b.txt")->body);
 	}
 
 	public function testDeletingAFileRemovesOnlyThatObject(): void

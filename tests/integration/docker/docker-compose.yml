@@ -1,8 +1,7 @@
 # Dockerized throwaway stack for the plg_filesystem_s3 end-to-end tests.
 #
 # All versions are configurable through the .env file (see env.dist):
-#   JOOMLA_VERSION, PHP_VERSION, APACHE_VERSION, MYSQL_VERSION, MINIO_VERSION,
-#   MC_VERSION.
+#   JOOMLA_VERSION, PHP_VERSION, APACHE_VERSION, MYSQL_VERSION, GARAGE_VERSION.
 #
 # Do not run this by hand. Use ./run.sh, which scrubs, provisions and tests in
 # one shot. This file only describes the services.
@@ -55,8 +54,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      minio:
+      garage:
         condition: service_healthy
+      s3:
+        condition: service_started
 
   web:
     image: "akeeba-e2e/web:${APACHE_VERSION:-2.4}"
@@ -69,49 +70,66 @@ services:
     depends_on:
       - php
 
-  # The S3-compatible server every connection under test points at. A real
-  # server, not a stub: request signing (v2 and v4), listing, copy, delete and
-  # the object headers the plugin sets are all exercised against it.
+  # The S3-compatible server every connection under test points at: Garage (MinIO
+  # no longer publishes images). A real server, not a stub: request signing (v4;
+  # Garage does not implement v2), listing, copy, delete and the object headers
+  # the plugin sets are all exercised against it. run.sh provisions it (layout,
+  # key, bucket) with garage_provision() from
+  # ../buildfiles/docker/e2e/garage/provision.sh.
   #
-  # The site reaches it as http://minio:9000 from inside the compose network.
-  # It is ALSO published to the host, where run.sh grants anonymous READ-ONLY
-  # access to the test bucket (config/minio-anonymous-policy.json.tpl): that is
-  # how the tests inspect the bucket independently of the code under test, and
-  # how they prove an object is publicly readable. MinIO does not implement
-  # object ACLs, so a bucket policy is its only way to make objects public.
-  minio:
-    image: "quay.io/minio/minio:${MINIO_VERSION:-RELEASE.2025-09-07T16-13-09Z}"
+  # Garage has no published port: the site and the host reach it through the `s3`
+  # service below, and the tests write to it with the `s3cli` tool service.
+  garage:
+    image: "dxflrs/garage:${GARAGE_VERSION:-v2.5.0}"
     labels: *e2e-labels
-    command: ["server", "/data"]
-    environment:
-      MINIO_ROOT_USER: "${S3_ACCESS_KEY:-s3fse2eaccess}"
-      MINIO_ROOT_PASSWORD: "${S3_SECRET_KEY:-s3fse2esecret}"
-      # Like Amazon S3, refuse requests signed (v4) for any other region.
-      MINIO_SITE_REGION: "us-east-1"
-    ports:
-      - "127.0.0.1:${S3_PORT:-9190}:9000"
+    volumes:
+      - ${E2E_GARAGE_DIR:-../../../../buildfiles/docker/e2e/garage}/garage.toml:/etc/garage.toml:ro
     healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
+      test: ["CMD", "/garage", "status"]
       interval: 5s
       timeout: 5s
       retries: 20
 
-  # One-shot MinIO client, with full credentials. Never started by `up`; run.sh
-  # and the tests invoke it with `docker compose run --rm mc …` for everything
-  # the anonymous, read-only host view cannot do: creating the bucket, setting
-  # its policy, seeding fixtures and writing objects behind the plugin's back.
-  mc:
-    image: "quay.io/minio/mc:${MC_VERSION:-RELEASE.2025-08-13T08-35-41Z}"
+  # The S3 endpoint as the SITE sees it: http://s3:9000. An nginx front for Garage
+  # (config: ../buildfiles/docker/e2e/garage/public-read.nginx.conf). Garage can
+  # neither answer anonymous requests on its S3 port nor apply bucket policies,
+  # so this serves anonymous GET/HEAD of /<bucket>/<key> from the bucket's web
+  # endpoint (only for buckets run.sh made public with garage_public_read) and
+  # sends everything else, every signed request included, to the S3 API.
+  # Published to the host, which is how the tests prove an object is publicly
+  # readable and that anonymous writes are refused.
+  s3:
+    image: "nginx:1.27-alpine"
+    labels: *e2e-labels
+    volumes:
+      - ${E2E_GARAGE_DIR:-../../../../buildfiles/docker/e2e/garage}/public-read.nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "127.0.0.1:${S3_PORT:-9190}:9000"
+    depends_on:
+      garage:
+        condition: service_healthy
+
+  # One-shot AWS CLI, with full credentials. Never started by `up`; the tests
+  # invoke it with `docker compose run --rm s3cli …` for everything the anonymous,
+  # read-only host view cannot do: listing the bucket, seeding fixtures and
+  # writing objects behind the plugin's back.
+  s3cli:
+    image: "amazon/aws-cli:2.39.0"
     profiles: ["tools"]
     labels: *e2e-labels
+    entrypoint: ["aws"]
     environment:
-      MC_HOST_e2e: "http://${S3_ACCESS_KEY:-s3fse2eaccess}:${S3_SECRET_KEY:-s3fse2esecret}@minio:9000"
+      AWS_ACCESS_KEY_ID: "${S3_ACCESS_KEY:-GK53f5e2e053f5e2e053f5e2e0}"
+      AWS_SECRET_ACCESS_KEY: "${S3_SECRET_KEY:-53f5e2e053f5e2e053f5e2e053f5e2e053f5e2e053f5e2e053f5e2e053f5e2e0}"
+      AWS_DEFAULT_REGION: "us-east-1"
+      AWS_ENDPOINT_URL: "http://garage:3900"
+      AWS_REQUEST_CHECKSUM_CALCULATION: "when_required"
+      AWS_RESPONSE_CHECKSUM_VALIDATION: "when_required"
     volumes:
-      - ./config:/config:ro
       - ./seed:/seed:ro
       - ./bulk:/bulk:ro
     depends_on:
-      - minio
+      - garage
 
 networks:
   default:
