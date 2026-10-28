@@ -15,8 +15,8 @@ anti-CSRF token. It then checks every effect in the bucket itself, independently
 - [Phing](https://www.phing.info/) on `PATH` and the sibling `../buildfiles` checkout, to build the
   package (`phing git`). Use `--skip-build` to reuse the newest `release/plg_filesystem_s3-*.zip`.
 - `composer install` already run in the repository root. The package ships `vendor/`.
-- `jq`, `gunzip`, `unzip` and `curl`, to resolve and unpack Joomla. No network is needed if the Joomla
-  package is already in `inbox/`.
+- `unzip` and `getcms` from `../buildfiles` (run `composer install` there), to resolve, download and
+  unpack Joomla. No network is needed if the Joomla package is already in `inbox/`.
 
 ## Quick start
 
