@@ -177,6 +177,15 @@ e2e_apply_overrides
 : "${S3_BUCKET:=s3fs-e2e}"
 : "${TEST_USER_PASSWORD:=test}"
 
+# .env is never refreshed from env.dist, so one from the MinIO era still has its S3 keys, which Garage rejects.
+# Only that exact pair is replaced; any other value is somebody's own choice. .env itself is left alone.
+if [ "${S3_ACCESS_KEY}" = "s3fse2eaccess" ] && [ "${S3_SECRET_KEY}" = "s3fse2esecret" ]; then
+	warn ".env has the old MinIO S3 keys; using the Garage defaults. Update it from env.dist."
+	S3_ACCESS_KEY="GK53f5e2e053f5e2e053f5e2e0"
+	S3_SECRET_KEY="53f5e2e053f5e2e053f5e2e053f5e2e053f5e2e053f5e2e053f5e2e053f5e2e0"
+	export S3_ACCESS_KEY S3_SECRET_KEY
+fi
+
 # In-container CLI helpers ---------------------------------------------------
 php_cli()   { DC exec -T php php "$@"; }
 mysql_cli() { DC exec -T db mysql -uroot -p"${DB_ROOT_PASSWORD}" "$@"; }

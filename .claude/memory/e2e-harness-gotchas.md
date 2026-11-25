@@ -22,3 +22,14 @@
 **Why:** each of these cost a wrong red or a false green during the 2026-09 work.
 
 **How to apply:** read this before adding or changing an E2E test.
+
+## Changing a default in `env.dist`
+
+A change to `env.dist` never reaches an existing `docker/.env`, which is copied once and overrides `run.sh`'s own
+defaults. If an old default would break the stack, make `run.sh` replace that exact old value (both, when only the pair
+is meaningful) and warn. Leave any other value, and `.env` itself, alone.
+
+**Why:** the move from MinIO to Garage left old S3 keys in existing `.env` files, and every run failed (issue #29).
+
+**How to apply:** before changing or removing a default in `env.dist`, run the harness against a `.env` made from the
+old template (`git show <commit>:tests/integration/docker/env.dist`).

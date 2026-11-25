@@ -45,8 +45,8 @@ on the host, so re-run the tests with `run.sh` (or keep the stack local while it
 
 | Option | Effect |
 |---|---|
-| `-j`, `--joomla=VERSION` | Joomla to test: full (`6.1.3`), branch (`6.1`) or major (`6`). Default: `JOOMLA_VERSION` in `.env`. |
-| `-p`, `--php=VERSION` | PHP image tag, e.g. `8.1`. Default: `PHP_VERSION` in `.env`. |
+| `-j`, `--joomla=VERSION` | Joomla to test: full (`6.1.3`), branch (`6.1`) or major (`6`). Default: `JOOMLA_VERSION` from the committed [version matrix](#the-version-matrix). |
+| `-p`, `--php=VERSION` | PHP image tag, e.g. `8.1`. Default: `PHP_VERSION` from the committed [version matrix](#the-version-matrix). |
 | `--matrix` | Run every Joomla/PHP pair in the committed `JOOMLA_MATRIX`, each from a clean slate; build only once. |
 | `-f`, `--filter=NAME` | Passed to PHPUnit as `--filter`. |
 | `--skip-build` | Do not run `phing git`; install the newest package in `release/`. |
