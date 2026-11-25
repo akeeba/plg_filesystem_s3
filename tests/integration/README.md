@@ -28,6 +28,19 @@ php tests/integration/provision.php                # put fixtures back after pok
 tests/integration/docker/run.sh --down             # tear everything down
 ```
 
+## Remote host
+
+The whole suite can run on another machine over SSH instead: `tests/integration/docker/run.sh --host=HOST`,
+`E2E_DOCKER_HOST` (environment or `docker/.env`), or `e2e.docker.host` in your `build.properties`. This includes
+`composer test:integration`, `composer test` and their Phing targets; the Composer install and the unit suite stay on
+this machine, and the installed `vendor/` is sent along. `--host=local` forces this machine. Every run on the host gets
+its own slot (staging tree, Compose project and ports), so any number can run at once, also from Git worktrees.
+`S3FS_E2E_IGNORE_KNOWN_BUGS` is forwarded. After a failed run the PHP error log comes back into
+`tests/integration/remote-results/`. The host ports in this file apply to local runs only; a kept remote stack prints its
+ports and the `ssh -L` command to reach it. `phpunit` on this machine cannot use a remote stack: `config.php` is written
+on the host, so re-run the tests with `run.sh` (or keep the stack local while iterating). Details and host requirements:
+"Remote E2E hosts" in the sibling `buildfiles` repository's README.
+
 ## `run.sh` options
 
 | Option | Effect |
@@ -40,6 +53,7 @@ tests/integration/docker/run.sh --down             # tear everything down
 | `--keep-containers` | Leave the stack up after the tests. |
 | `--no-tests` | Provision only. |
 | `--down` | Scrub containers, volumes, the web root and generated config, then exit. |
+| `--host=HOST`, `--slot=N` | Run on a remote host; see "Remote host". |
 | `-- <args>` | Everything after `--` goes to PHPUnit verbatim. |
 
 `run.sh` **always scrubs first**, so a crashed previous run can never leak into the next one, and it
